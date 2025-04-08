@@ -99,6 +99,9 @@ const char * esp_usb::getPIDString() {
         case 0x6015:
             return "FT231";
             break;
+        case 0x800A:
+            return "CP2101-CP2104";
+            break;
         default:
             break;
     };

@@ -1,22 +1,51 @@
-#include <Arduino.h>
-#include <FastLED.h>
-
 #include "statusled.hpp"  
-
+#include "Arduino.h"
+#include "esp32-hal-ledc.h"
+#include "defines.h"
 #include <inttypes.h>
 	
 const static char *TAG = "statusled";
 
-StatusLED::StatusLED(int NUMLEDS){ 
-	FastLED.addLeds<WS2812B, 48, GRB>(this->leds, NUMLEDS);
-  	//FastLED.setBrightness(25);
+StatusLED::StatusLED(int pin_r, int channel_r, int pin_g, int channel_g, int pin_b, int channel_b, LED_TYPE led_type){ 
+	this->led_type = led_type;
+
+	switch(this->led_type){
+		case NO_HW_LED:
+			ESP_LOGI(TAG, "status led DISABLED because of NO_HW_LED");
+			break;
+		
+		case RGB_COMMON_ANODE:
+		case RGB_COMMON_CATHODE:
+			this->channel_r = channel_r;
+			this->channel_g = channel_g;
+			this->channel_b = channel_b;
+			pinMode(pin_r, OUTPUT);
+			pinMode(pin_g, OUTPUT);
+			pinMode(pin_b, OUTPUT);
+    		ledcSetup(this->channel_r, 5000, 8); //channel 1, 5000Hz, 8bit PWM
+    		ledcSetup(this->channel_g, 5000, 8); //channel 2, 5000Hz, 8bit PWM
+    		ledcSetup(this->channel_b, 5000, 8); //channel 3, 5000Hz, 8bit PWM
+    		ledcAttachPin(pin_r, this->channel_r);
+    		ledcAttachPin(pin_g, this->channel_g);
+    		ledcAttachPin(pin_b, this->channel_b);
+			ESP_LOGI(TAG, "set RGB");
+			break;
+
+		case SINGLE_ANODE:
+		case SINGLE_CATHODE:
+			pinMode(pin_r, OUTPUT);
+			ledcSetup(3, 5000, 8); //channel 4, 5000Hz, 8bit PWM
+			ledcAttachPin(pin_r, 3);
+			ESP_LOGI(TAG, "set SINGLE");
+			break;
+	}
 }
 
 StatusLED::StatusLED(){};
 
 
 void StatusLED::show(){
-	//if(this->led_type == NO_HW_LED) return;
+	if(this->led_type == NO_HW_LED) return;
 
 	if(this->led_enabled == false){
 		setRGB(0, 0, 0);
@@ -124,9 +153,29 @@ void StatusLED::calc_offset(){
 }
 
 void StatusLED::setRGB(int r, int g, int b){
-	/*this->leds[0] = CRGB(r, g, b);
-	FastLED.show();*/
-	leds[0] = CRGB(0, 0, 255);
-	FastLED.show();
-	ESP_LOGI(TAG, "show run %u %u %u", r, g, b);
+	switch(this->led_type){
+		case RGB_COMMON_ANODE:
+			ledcWrite(this->channel_r, 255-r);
+			ledcWrite(this->channel_g, 255-g);
+			ledcWrite(this->channel_b, 255-b);
+		break;
+
+		case RGB_COMMON_CATHODE:
+			ledcWrite(this->channel_r, r);
+        	ledcWrite(this->channel_g, g);
+        	ledcWrite(this->channel_b, b);
+		break;
+
+		case SINGLE_ANODE:
+			ledcWrite(3, r);
+		break;
+
+		case SINGLE_CATHODE:
+			ledcWrite(3, 255-r);
+		break;
+
+		case NO_HW_LED:
+			//do nothing
+		break;
+	}
 }

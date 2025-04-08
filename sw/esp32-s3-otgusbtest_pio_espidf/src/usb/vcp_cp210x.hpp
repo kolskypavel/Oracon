@@ -12,7 +12,7 @@
 #include "usb/cdc_acm_host.h"
 
 #define SILICON_LABS_VID (0x10C4)
-#define CP210X_PID       (0xEA60) // Single i.e. CP2101 - CP2104
+#define CP210X_PID       (0x800A)//custom//(0xEA60) // Single i.e. CP2101 - CP2104
 #define CP2105_PID       (0xEA70) // Dual
 #define CP2108_PID       (0xEA71) // Quad
 

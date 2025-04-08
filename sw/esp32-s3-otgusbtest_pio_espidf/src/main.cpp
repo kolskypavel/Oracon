@@ -1,8 +1,15 @@
+/**
+ * @source https://github.com/luc-github/esp32-usb-serial/tree/main
+ */
+
 #include <Arduino.h>
 #include <FastLED.h>
 
-#include "stled.h"
+//#include "stled.h"
+#include "led/statusled.hpp"
+#include "si/si_parser.h"
 #include "defines.h"
+#include "freertos/queue.h"
 
 //StatusLED status_led;
 //CRGB leds[1];
@@ -12,7 +19,7 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
-#define ESP_USB_SERIAL_BAUDRATE 115200
+#define ESP_USB_SERIAL_BAUDRATE 38400//115200
 #define ESP_USB_SERIAL_DATA_BITS (8)
 #define ESP_USB_SERIAL_PARITY \
   (0)  // 0: 1 stopbit, 1: 1.5 stopbits, 2: 2 stopbits
@@ -31,11 +38,36 @@ bool isConnected = false;
 bool usbReady = false;
 TaskHandle_t xHandle;
 
+uint8_t test[100];
+StatusLED status_led, network_led;
+QueueHandle_t queue;
+
+//STATUS
+bool authenticated = false;
+
 /**
  * @brief Data received callback
  */
 bool rx_callback(const uint8_t *data, size_t data_len, void *arg) {
-  Serial.write(data, data_len);
+
+  
+  //dump received data to serial
+  Serial.println("Received data length: " + String(data_len));
+  for(int i = 0; i < data_len; i++){
+    Serial.print(data[i], HEX);
+    Serial.print(",");
+  }
+  Serial.println();
+  
+
+  if(data[1] == 0x02 && data[2] == 0xD3 && data[19] == 0x03){ //check STX, 0xD3 & ETX
+    ESP_LOGI("rx_callback", "Received SI-Card data from USB serial"); //TODO: verify checksum
+    si_parse(data, data_len);
+    si_dumpdata();
+    si_clear_data();
+  }else{
+    ESP_LOGI("rx_callback", "Received data is not SI-Card data");
+  }
   return true;
 }
 
@@ -154,7 +186,18 @@ void handle() {
 
 void setup() {
   usb_serial.begin(115200);
-  /*if (ESP_OK != usb_serial_init()) {
+
+  status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
+  network_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
+
+  status_led.setEnabled(true);
+  status_led.setPulse(1);
+  status_led.setColor(255, 0, 0);
+  network_led.setEnabled(true); 
+  network_led.setPulse(2);
+  network_led.setColor(0, 255, 0);
+
+  if (ESP_OK != usb_serial_init()) {
     Serial.println("Initialisation failed");
   } else {
     if (ESP_OK != usb_serial_create_task()) {
@@ -178,7 +221,7 @@ void setup() {
     Serial.println("USB Serial Connection Task created successfully");
   }
   usbReady = true;
-  */
+  
 
   //status_led = StatusLED(1);
   //status_led.setEnabled(true);
@@ -186,17 +229,22 @@ void setup() {
   //status_led.setColor(0, 0, 255);
 
   //FastLED.addLeds<WS2812B, 48, GRB>(leds, 1);
-  stled_setup();
+  //stled_setup();
   nbiot_serial.begin(115200, SERIAL_8N1, RXD1, TXD1);
+  rs232_serial.begin(4800, SERIAL_8N1, RXD2, TXD2);
+
+  queue = xQueueCreate(QUEUE_SIZE, sizeof(SIRecord));
 }
 
 void loop() {
-  //status_led.show();
-  stled_loop();
-  /*if (usbReady) {
+  status_led.show();
+  network_led.show();
+  //stled_loop();
+  
+  if (usbReady) {
     handle();
     vTaskDelay(pdMS_TO_TICKS(10));
-  }*/
+  }
   
   if(Serial.available()){
     char c = Serial.read();
@@ -205,10 +253,42 @@ void loop() {
     Serial1.write(c);
   }
 
-  if(Serial1.available()){
-    Serial.println("reading from serial1: ");
-    while(Serial1.available()){
-      Serial.write(Serial1.read());
+  if(rs232_serial.available()){
+    for(int i = 0; i < 100; i++){
+      test[i] = 0;
     }
+    Serial.println("reading from rs232_serial: ");
+    int i = 1;
+    while(rs232_serial.available()){
+      test[i] = rs232_serial.read();
+      i++;
+      delay(2);
+      //Serial.print(Serial1.read(), HEX);
+    }
+    //Serial.println("done reading from rs232_serial: ");
+    ESP_LOGI("rx_callback", "Received SI-Card data from r232 serial");
+    for(int i = 0; i < 100; i++){
+      Serial.print(test[i], HEX);
+      Serial.print(",");
+    }
+    si_parse(test, i);
+    network_led.indicate(255, 0, 0, StatusLED::SOLID, 0.5, 1000);
+    si_dumpdata();
+    si_clear_data();
+  }
+
+  //MAIN LOOP
+
+  //CONNECT -> AUTH PHASE
+  if (!authenticated)
+  {
+
+  }
+  else {
+  //PUNCHES?
+
+  //STATUS?
+
+  //CONF?
   }
 }

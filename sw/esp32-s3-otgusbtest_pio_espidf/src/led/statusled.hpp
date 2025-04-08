@@ -4,8 +4,6 @@
 
 #include "stdint.h"
 
-#define MILLIS_TO_MICROS(a) (int)(a*1000)
-
 /*
 * This class takes care of interacting with the user on the module side with
 * an RGB led. 
@@ -21,10 +19,10 @@
 class StatusLED  
 {
 	public:
-	//enum LED_TYPE{NO_HW_LED, SINGLE_ANODE, SINGLE_CATHODE, RGB_COMMON_ANODE, RGB_COMMON_CATHODE};
+	enum LED_TYPE{NO_HW_LED, SINGLE_ANODE, SINGLE_CATHODE, RGB_COMMON_ANODE, RGB_COMMON_CATHODE};
 	enum MODE{SOLID, FLASH, PULSE};
 
-    StatusLED(int NUMLEDS);
+    StatusLED(int pin_r, int channel_r, int pin_g, int channel_g, int pin_b, int channel_b, LED_TYPE led_type);
 	StatusLED();
 
 	void setEnabled(bool enabled);
@@ -37,8 +35,9 @@ class StatusLED
 
 	
 	private:
-	CRGB leds[1];
+	LED_TYPE led_type;
 	MODE mode, mode_old;
+	int channel_r, channel_g, channel_b;
 
 	bool led_enabled = true;
 	int r = 0, g = 0, b = 0, r_old = 0, g_old = 0, b_old = 0, offset_ms = 0;

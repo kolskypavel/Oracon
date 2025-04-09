@@ -14,6 +14,7 @@
  *      TYPEDEFS
  **********************/
 struct SIRecord {
+    uint8_t order;
     uint8_t cardNumber;
     uint8_t stationNumber;
     std::string time;

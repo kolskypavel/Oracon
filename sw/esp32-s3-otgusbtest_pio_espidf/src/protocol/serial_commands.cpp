@@ -8,8 +8,10 @@ Reference: https://www.waveshare.com/w/upload/c/c2/SIM7020_Series_TCPIP_Applicat
 //Commands
 const std::string COMMAND_OK = "OK";
 const std::string COMMAND_CONNECT = "AT+CSOCON=";
-const std::string COMMAND_SEND = "AT+CSOSEND=";
+const std::string COMMAND_SEND = "AT+CSOSEND=";     //Structure  AT+CSOSEND=<socket_id>,<len>,<data>
+const std::string COMMAND_INCOMMING = "+CSONMI:";
 const std::string COMMAND_CLOSE = "AT+CSOCL=";
 const std::string COMMAND_ERROR = "+CSOERR:";
+const std::string COMMAND_SIGNAL = "AT+CSQ";
 
 //Error codes

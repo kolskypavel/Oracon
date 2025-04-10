@@ -1,15 +1,15 @@
 /**
- * @source https://github.com/luc-github/esp32-usb-serial/
+ * Used libraries:
+ * https://github.com/luc-github/esp32-usb-serial/
  */
 
 #include <Arduino.h>
-#include <FastLED.h>
-
-// #include "stled.h"
 #include "led/statusled.hpp"
 #include "si/si_parser.h"
 #include "defines.h"
 #include "system/systemstats.h"
+#include "protocol/protocol_message.h"
+#include "protocol/socket.h"
 
 #include "esp32_usb_serial.h"
 #include "freertos/FreeRTOS.h"
@@ -18,19 +18,6 @@
 #include "freertos/queue.h"
 #include <wolfssl/options.h>
 #include <wolfssl/wolfcrypt/ecc.h>
-
-#define ESP_USB_SERIAL_BAUDRATE 38400 // 115200
-#define ESP_USB_SERIAL_DATA_BITS (8)
-#define ESP_USB_SERIAL_PARITY \
-  (0) // 0: 1 stopbit, 1: 1.5 stopbits, 2: 2 stopbits
-#define ESP_USB_SERIAL_STOP_BITS \
-  (0) // 0: None, 1: Odd, 2: Even, 3: Mark, 4: Space
-
-#define ESP_USB_SERIAL_RX_BUFFER_SIZE 512
-#define ESP_USB_SERIAL_TX_BUFFER_SIZE 128
-#define ESP_USB_SERIAL_TASK_SIZE 4096
-#define ESP_USB_SERIAL_TASK_CORE 1
-#define ESP_USB_SERIAL_TASK_PRIORITY 10
 
 SemaphoreHandle_t device_disconnected_sem;
 std::unique_ptr<CdcAcmDevice> vcp;
@@ -43,8 +30,9 @@ StatusLED status_led, network_led;
 QueueHandle_t punchQueue;
 
 // STATUS
-bool authenticated = false;
-Status currStatus;
+DeviceStatus currStatus;
+DeviceConfig config;
+ProtocolMessage message;
 
 // KEYS
 ecc_key privateKey;
@@ -211,9 +199,10 @@ void handle()
   }
 }
 
-//Gets the current counter value
-int getStatusTime(){
-
+// Gets the current counter value
+int getStatusTime()
+{
+  return 0;
 }
 
 void setup()
@@ -277,6 +266,10 @@ void setup()
   // INIT QUEUE
   punchQueue = xQueueCreate(QUEUE_SIZE, sizeof(SIRecord));
 
+  // INIT STATUS
+  currStatus.connected = false;
+  currStatus.authenticated = false;
+
   // INIT KEYS
 }
 
@@ -284,7 +277,6 @@ void loop()
 {
   status_led.show();
   network_led.show();
-  // stled_loop();
 
   if (usbReady)
   {
@@ -328,27 +320,32 @@ void loop()
     si_clear_data();
   }
 
-
   // MAIN LOOP
 
-  // CONNECT -> AUTH PHASE
-  if (!authenticated)
+  // CONNECT
+  if (!currStatus.connected)
   {
-    
+    connectSocket(currStatus);
+    // TODO: add delay
   }
   else
   {
-    // PUNCHES?
-    if (queue.empty())
+    // AUTH PHASE
+    if (!currStatus.authenticated)
     {
-
+      authenticateDevice(currStatus);
     }
-    // STATUS?
-    // if(getStatusTime > ){
-
-    // }
-
-    // CONF?
-    
+    else
+    {
+      // PUNCHES?
+      // if (punchQueue->empty())
+      // {
+      // sendPunches
+      // }
+      // STATUS?
+      // if(getStatusTime > ){
+      // sendStatus(currStatus, config);
+      // }
+    }
   }
 }

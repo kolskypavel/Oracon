@@ -4,17 +4,17 @@ std::string messageTypeToString(ProtocolMessageType type)
 {
     switch (type)
     {
-    case ACK:
+    case TYPE_ACK:
         return "ACK";
-    case NACK:
+    case TYPE_NACK:
         return "NACK";
-    case CONNECT:
+    case TYPE_CONNECT:
         return "CONNECT";
-    case STATUS:
+    case TYPE_STATUS:
         return "STATUS";
-    case PUNCH:
+    case TYPE_PUNCH:
         return "PUNCH";
-    case CONF:
+    case TYPE_CONF:
         return "CONF";
     default:
         // Unknown type -> exception
@@ -26,23 +26,23 @@ ProtocolMessageType stringToMessageType(const std::string &typeString)
 {
     if (typeString == "ACK")
     {
-        return ProtocolMessageType::ACK;
+        return ProtocolMessageType::TYPE_ACK;
     }
     else if (typeString == "NACK")
     {
-        return ProtocolMessageType::NACK;
+        return ProtocolMessageType::TYPE_NACK;
     }
     else if (typeString == "STATUS")
     {
-        return ProtocolMessageType::STATUS;
+        return ProtocolMessageType::TYPE_STATUS;
     }
     else if (typeString == "PUNCH")
     {
-        return ProtocolMessageType::PUNCH;
+        return ProtocolMessageType::TYPE_PUNCH;
     }
     else if (typeString == "CONF")
     {
-        return ProtocolMessageType::CONF;
+        return ProtocolMessageType::TYPE_CONF;
     }
     else
     {
@@ -67,7 +67,7 @@ std::string messageToString(const ProtocolMessage &message)
     return output;
 }
 
-std::string statusToString(const Status &status, const Config &config)
+std::string statusToString(const DeviceStatus &status, const DeviceConfig &config)
 {
     JsonDocument doc;
     JsonObject configJson = doc.createNestedObject("config");
@@ -83,7 +83,7 @@ std::string statusToString(const Status &status, const Config &config)
     return output;
 }
 
-std::string punchToString(SIRecord record)
+std::string punchToString(const SIRecord &record)
 {
     JsonDocument doc;
     doc["order"] = record.order;
@@ -96,12 +96,13 @@ std::string punchToString(SIRecord record)
     return output;
 }
 
-ProtocolMessage parseMessage(std::string message)
+ProtocolMessage parseMessage(const std::string &message)
 {
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, message);
 
     std::string stringType = doc["type"];
+    std::string data = doc["data"];
     std::string token = doc["token"];
     int deviceId = doc["device"];
     int counter = doc["counter"];
@@ -113,7 +114,7 @@ ProtocolMessage parseMessage(std::string message)
     }
 
     ProtocolMessage msg;
-    msg.type = stringToMessageType(&stringType);
+    msg.type = stringToMessageType(stringType);
     msg.deviceId = deviceId;
     msg.counter = counter;
     msg.token = token;
@@ -121,9 +122,9 @@ ProtocolMessage parseMessage(std::string message)
     return msg;
 }
 
-Config dataToConfig(std::string data)
+DeviceConfig dataToConfig(const std::string &data)
 {
-    Config config;
+    DeviceConfig config;
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, data);
     int statusDelay = doc["statusDelay"];

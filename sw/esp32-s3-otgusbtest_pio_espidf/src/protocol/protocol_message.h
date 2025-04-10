@@ -3,15 +3,16 @@
 #include <ArduinoJson.h>
 
 // Represents one message sent over Oracon protocol
+#pragma once
 
 enum ProtocolMessageType
 {
-    ACK,
-    NACK,
-    CONNECT,
-    STATUS,
-    PUNCH,
-    CONF
+    TYPE_ACK,
+    TYPE_NACK,
+    TYPE_CONNECT,
+    TYPE_STATUS,
+    TYPE_PUNCH,
+    TYPE_CONF
 };
 
 struct ProtocolMessage
@@ -20,6 +21,6 @@ struct ProtocolMessage
     uint16_t deviceId;
     uint16_t counter;
     std::string token;
-    JsonDocument data;
+    std::string data;
     std::string signature;
 };

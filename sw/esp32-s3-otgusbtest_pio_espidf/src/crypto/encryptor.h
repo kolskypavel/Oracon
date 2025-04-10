@@ -1,12 +1,14 @@
 #include <string>
 
-#define HAVE_ECC
-#define HAVE_ECC_ENCRYPT
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/ecc.h>
+#include <wolfssl/wolfcrypt/signature.h>
+#include "defines.h"
 
-std::string encryptData(const std::string &data, const ecc_key &key);
+bool encryptData(const std::string &data, ecc_key &key, byte &out, word32 outLength);
 
-std::string decryptData(const std::string &data, const ecc_key &key);
+bool decryptData(const byte * data, word32 dataLength, ecc_key &key, const std::string &out);
 
-std::string generateSignature(const std::string &data, const ecc_key &key);
+bool generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 outLength);
 
-bool validateSignature(const std::string &signature, const std::string &data, const ecc_key &key);
+bool validateSignature(const byte &signature, word32 sigLength, const std::string &data, const ecc_key &key);

@@ -2,4 +2,5 @@
 
 int getBatteryStatus()
 {
+    return 0;
 }

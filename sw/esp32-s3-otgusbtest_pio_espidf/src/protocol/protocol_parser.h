@@ -1,27 +1,29 @@
 // Parser class for the protocol messages
+#pragma once
 
 #include "protocol_message.h"
 #include "system/systemstats.h"
 #include "si/si_parser.h"
 
-struct Config
-{
-    int statusDelay;
-};
 
-ProtocolMessage parseMessage(const std::string & message);
 
-bool validateMessage(const ProtocolMessage & message);
+// Converts given data to HEX
+std::string dataToHex(const byte *data, int dataLen);
 
-std::string messageToString(const ProtocolMessage & message);
+ProtocolMessage parseMessage(const std::string &message);
+
+bool validateMessage(const ProtocolMessage &message);
+
+std::string messageToString(const ProtocolMessage &message);
 
 std::string messageTypeToString(ProtocolMessageType type);
 
 ProtocolMessageType stringToMessageType(const std::string &typeString);
 
 // Serializes a given status object to OraCon format
-std::string statusToString(const Status &status, const Config &config);
+std::string statusToString(const DeviceStatus &status, const DeviceConfig &config);
 
+// Serializes a given punch object to OraCon format
 std::string punchToString(const SIRecord &record);
 
-Config dataToConfig(const std::string & config);
+DeviceConfig dataToConfig(const std::string &data);

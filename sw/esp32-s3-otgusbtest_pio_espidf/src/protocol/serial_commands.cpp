@@ -11,9 +11,10 @@ const std::string COMMAND_CONNECT = "AT+CSOCON=";
 const std::string COMMAND_SEND = "AT+CSOSEND=";     //Structure  AT+CSOSEND=<socket_id>,<len>,<data>
 const std::string COMMAND_INCOMMING = "+CSONMI:";
 const std::string COMMAND_CLOSE = "AT+CSOCL=";
-const std::string COMMAND_SIGNAL = "AT+CSQ";
+const std::string COMMAND_SIGNAL = "+CSQ";
 
 const std::string COMMAND_RESPONSE_ERROR = "+CSOERR:";
 const std::string COMMAND_RESPONSE_OK = "OK";
 const std::string COMMAND_RESPONSE_CREATED = "+CSOC:";
+
 //Error codes

@@ -1,5 +1,29 @@
 #include "protocol_parser.h"
 
+std::string dataToHex(const byte *data, int dataLen)
+{
+    std::ostringstream oss;
+    for (int i = 0; i < dataLen; ++i)
+    {
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]);
+    }
+    return oss.str();
+}
+
+void hexToData(std::string in, byte *out)
+{
+    if (in.length() % 2 != 0)
+    {
+        throw std::invalid_argument("Invalid input string length or insufficient output buffer size");
+    }
+
+    for (size_t i = 0; i < in.length(); i += 2)
+    {
+        std::string byteString = in.substr(i, 2);
+        out[i / 2] = static_cast<byte>(std::stoi(byteString, nullptr, 16));
+    }
+}
+
 std::string messageTypeToString(ProtocolMessageType type)
 {
     switch (type)
@@ -67,11 +91,11 @@ std::string messageToString(const ProtocolMessage &message)
     return output;
 }
 
-std::string statusToString(const DeviceStatus &status, const DeviceConfig &config)
+std::string statusToString(const DeviceStatus &status)
 {
     JsonDocument doc;
     JsonObject configJson = doc.createNestedObject("config");
-    configJson["statusDelay"] = config.statusDelay;
+    configJson["statusDelay"] = status.config.statusDelay;
 
     JsonObject statusObj = doc.createNestedObject("status");
     statusObj["battery"] = status.battery;
@@ -155,4 +179,18 @@ DeviceConfig dataToConfig(const std::string &data)
 
     config.statusDelay = statusDelay;
     return config;
+}
+
+bool startsWith(std::string text, std::string prefix)
+{
+    if (text.rfind(prefix, 0) == 0)
+    {
+        return true;
+    }
+    return false;
+}
+
+std::string getSuffix(std::string input, char c)
+{
+    return input.substr(input.find(c) + 1);
 }

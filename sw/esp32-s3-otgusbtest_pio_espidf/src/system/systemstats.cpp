@@ -1,6 +1,6 @@
 #include "systemstats.h"
 
-int getBatteryStatus()
+int getBatteryLevel()
 {
     return 0;
 }

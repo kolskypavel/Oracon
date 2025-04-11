@@ -1,14 +1,5 @@
 #include "socket.h"
 
-bool startsWith(std::string text, std::string prefix)
-{
-    if (text.rfind(prefix, 0) == 0)
-    {
-        return true;
-    }
-    return false;
-}
-
 bool writeData(const std::string &data)
 {
     if (nbiot_serial.available())
@@ -48,7 +39,7 @@ void connectSocket(DeviceStatus &status)
     if (startsWith(resp, COMMAND_RESPONSE_CREATED))
     {
         // TODO: Extract the socket ID
-        int socketId = 0;
+        int socketId = std::stoi(getSuffix(resp, ':'));
 
         std::string connect = COMMAND_CONNECT;
         connect += socketId;
@@ -60,7 +51,6 @@ void connectSocket(DeviceStatus &status)
         {
             status.connected = true;
             status.socketId = socketId;
-            return;
         }
     }
 }
@@ -76,7 +66,7 @@ bool sendData(const byte *data, int dataLen, int socketId)
     writeData(buffer);
 
     buffer = "";
-    buffer = getData();
+    buffer = receiveRawData();
 
     // Wait for positive reply
     if (buffer == COMMAND_RESPONSE_OK)
@@ -88,61 +78,126 @@ bool sendData(const byte *data, int dataLen, int socketId)
     return false;
 }
 
-bool sendMessage(const ProtocolMessage &protocolMessage)
+bool sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
 {
     std::string data = messageToString(protocolMessage);
 
     // TODO: encrypt
+    byte buf[MAX_MESSAGE_SIZE];
+    word32 encSize;
+
+    encryptData(data, status.key, buf, encSize);
 
     // Write to serial
-    // return sendData(encrypted);
+    return sendData(buf, encSize, status.socketId);
+}
+
+std::string getData()
+{
+    std::string received = receiveRawData();
+}
+
+bool validateMessage(const ProtocolMessage &msg, DeviceStatus &status)
+{
+    if (msg.counter == status.counter && msg.token == status.token)
+    {
+        return true;
+    }
     return false;
 }
 
-ProtocolMessage getNewMessage()
+ProtocolMessage getNewMessage(DeviceStatus &status)
 {
     std::string received = getData();
-    return parseMessage(received);
+    ProtocolMessage msg = parseMessage(received);
+
+    // TODO: add validation
+    if (validateMessage(msg, status))
+    {
+        return msg;
+    }
+}
+
+void initMessage(ProtocolMessage &msg, DeviceStatus &status)
+{
+    msg.deviceId = status.deviceId;
+    msg.counter = ++status.counter;
+    msg.token = status.token;
 }
 
 bool sendAck(DeviceStatus &status)
 {
     ProtocolMessage msg;
+    initMessage(msg, status);
     msg.type = ProtocolMessageType::TYPE_ACK;
-    return sendMessage(msg);
+    return sendMessage(msg, status);
 }
 
 bool sendNack(DeviceStatus &status)
 {
     ProtocolMessage msg;
+    initMessage(msg, status);
     msg.type = ProtocolMessageType::TYPE_NACK;
-    return sendMessage(msg);
+
+    return sendMessage(msg, status);
 }
 
 void authenticateDevice(DeviceStatus &status)
 {
+    // Send connect message
     ProtocolMessage msg;
+    initMessage(msg, status);
+    msg.type = ProtocolMessageType::TYPE_CONNECT;
+
+    // Wait for connect response
+    msg = getNewMessage(status);
+
+    // Send ACK/NACK
 }
 
-bool sendStatus(DeviceStatus &status, DeviceConfig &config)
+bool sendStatus(DeviceStatus &status)
 {
-    std::string data = statusToString(status, config);
+    ProtocolMessage msg;
+    initMessage(msg, status);
+    msg.type = ProtocolMessageType::TYPE_STATUS;
+    msg.data = statusToString(status);
 
     return false;
 }
 
-bool sendPunches(std::vector<SIRecord> records)
+bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount)
 {
-    std::string out;
-    for (SIRecord record : records)
+    ProtocolMessage msg;
+    initMessage(msg, status);
+    msg.type = ProtocolMessageType::TYPE_PUNCH;
+    msg.data = punchesToString(punches, punchCount);
+
+    sendMessage(msg, status);
+
+    msg = getNewMessage(status);
+
+    // Get confirmation
+    if (msg.type == ProtocolMessageType::TYPE_ACK)
     {
-        out += punchToString(record);
+        return true;
     }
-    ProtocolMessage msg;
+
     return false;
 }
 
-int getSignalStrength()
+void closeSocket(DeviceStatus &status)
 {
-    return 0;
+    std::string out = COMMAND_CLOSE + std::to_string(status.socketId);
+    writeData(out);
+}
+
+void getSignalStrength(DeviceStatus &status)
+{
+    writeData("AT" + COMMAND_SIGNAL);
+    std::string response = receiveRawData();
+
+    // Parse the response
+    uint8_t signal;
+
+    status.signal = signal;
 }

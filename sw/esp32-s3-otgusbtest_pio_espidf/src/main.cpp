@@ -36,9 +36,6 @@ DeviceStatus currStatus;
 DeviceConfig config;
 ProtocolMessage message;
 
-// KEYS
-ecc_key key;
-
 /**
  * @brief Data received callback
  */
@@ -279,8 +276,13 @@ void setup()
 void processStatus()
 {
 
-  // sendStatus(currStatus, config);
-  ProtocolMessage msg = getNewMessage();
+  sendStatus(currStatus);
+  ProtocolMessage msg = getNewMessage(currStatus);
+
+  if (msg.type == ProtocolMessageType::TYPE_CONF)
+  {
+
+  }
 }
 
 bool receivePunches()
@@ -369,7 +371,7 @@ void loop()
         }
       }
     }
-    catch (std::exception exception)
+    catch (std::invalid_argument exception)
     {
       // Connection error -> disconnect socket
       currStatus.connected = false;

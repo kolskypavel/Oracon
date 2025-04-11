@@ -11,26 +11,35 @@ Implementation of the ORacon protocol
 #include <string>
 #include <vector>
 
-// Writes the given data to serial
-bool writeData(const std::string &data, int dataLen);
+//Checks if text starts with given prefix
+bool startsWith(std::string text, std::string prefix);
 
-//Sends data and checks if they got received correctly
+// Writes the given raw data to serial
+bool writeData(const std::string &data);
+
+// Sends data and checks if they got received correctly
 bool sendData(const byte *data, int dataLen, int socketId);
 
-//Sends given protocol message
+// Sends given protocol message
 bool sendMessage(const ProtocolMessage &protocolMessage);
 
-std::string receiveData();
+//Receives raw data from the serial port
+std::string receiveRawData();
+
+//Receives and parses the raw data - decrypts
+std::string getData();
 
 ProtocolMessage getNewMessage();
 
-bool sendAck();
+bool sendAck(DeviceStatus &status);
 
-bool sendNack();
+bool sendNack(DeviceStatus &status);
 
-void connectSocket(DeviceStatus & status);
+void connectSocket(DeviceStatus &status);
 
-void authenticateDevice(DeviceStatus & status);
+void authenticateDevice(DeviceStatus &status);
+
+void closeSocket(DeviceStatus &status);
 
 bool sendStatus(DeviceStatus &status, DeviceConfig &config);
 

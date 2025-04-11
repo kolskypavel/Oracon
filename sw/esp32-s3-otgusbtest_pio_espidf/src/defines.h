@@ -31,6 +31,7 @@
 // QUEUE MANIPULATION
 #define QUEUE_SIZE 20
 
+
 // CRYPTO
 #define HAVE_ECC
 #define HAVE_ECC_ENCRYPT

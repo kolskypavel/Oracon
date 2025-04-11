@@ -29,14 +29,15 @@ uint8_t test[100];
 StatusLED status_led, network_led;
 QueueHandle_t punchQueue;
 
+SIRecord records[5];
+
 // STATUS
 DeviceStatus currStatus;
 DeviceConfig config;
 ProtocolMessage message;
 
 // KEYS
-ecc_key privateKey;
-ecc_key publicKey;
+ecc_key key;
 
 /**
  * @brief Data received callback
@@ -263,6 +264,8 @@ void setup()
   nbiot_serial.begin(115200, SERIAL_8N1, RXD1, TXD1);
   rs232_serial.begin(4800, SERIAL_8N1, RXD2, TXD2);
 
+  // INIT TIMERS
+
   // INIT QUEUE
   punchQueue = xQueueCreate(QUEUE_SIZE, sizeof(SIRecord));
 
@@ -271,6 +274,20 @@ void setup()
   currStatus.authenticated = false;
 
   // INIT KEYS
+}
+
+void processStatus()
+{
+
+  // sendStatus(currStatus, config);
+  ProtocolMessage msg = getNewMessage();
+}
+
+bool receivePunches()
+{
+  // if (xQueueReceive(punchQueue,&buf,0 ))
+  // {
+  // }
 }
 
 void loop()
@@ -330,22 +347,33 @@ void loop()
   }
   else
   {
-    // AUTH PHASE
-    if (!currStatus.authenticated)
+    try
     {
-      authenticateDevice(currStatus);
+      // AUTH PHASE
+      if (!currStatus.authenticated)
+      {
+        authenticateDevice(currStatus);
+      }
+      else
+      {
+        // PUNCHES?
+        if (receivePunches())
+        {
+          //  sendPunches();
+        }
+
+        // STATUS?
+        if (getStatusTime() > config.statusDelay)
+        {
+          processStatus();
+        }
+      }
     }
-    else
+    catch (std::exception exception)
     {
-      // PUNCHES?
-      // if (punchQueue->empty())
-      // {
-      // sendPunches
-      // }
-      // STATUS?
-      // if(getStatusTime > ){
-      // sendStatus(currStatus, config);
-      // }
+      // Connection error -> disconnect socket
+      currStatus.connected = false;
+      closeSocket(currStatus);
     }
   }
 }

@@ -96,6 +96,25 @@ std::string punchToString(const SIRecord &record)
     return output;
 }
 
+std::string punchesToString(const SIRecord punches[], int size)
+{
+    JsonDocument doc;
+    JsonArray punchesArray = doc["punches"].to<JsonArray>();
+
+    for (int i = 0; i < size; ++i)
+    {
+        JsonObject punchObj = punchesArray.createNestedObject();
+        punchObj["order"] = punches[i].order;
+        punchObj["stationNumber"] = punches[i].stationNumber;
+        punchObj["cardNumber"] = punches[i].cardNumber;
+        punchObj["time"] = punches[i].time;
+    }
+
+    std::string output;
+    serializeJson(doc, output);
+    return output;
+}
+
 ProtocolMessage parseMessage(const std::string &message)
 {
     JsonDocument doc;

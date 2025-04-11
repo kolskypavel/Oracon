@@ -4,7 +4,7 @@ Examples: https://github.com/wolfSSL/wolfssl-examples/blob/master/ecc/
 Docs: https://www.wolfssl.com/documentation/manuals/wolfssl/ecc_8h.html
  */
 
-bool encryptData(const std::string &data, ecc_key &pubKey, byte &out, word32 outLength)
+bool encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &outLength)
 {
     int ret = 0;
     WC_RNG rng;
@@ -44,7 +44,7 @@ bool encryptData(const std::string &data, ecc_key &pubKey, byte &out, word32 out
     return false;
 }
 
-bool decryptData(const byte * data, word32 dataLength, ecc_key &privKey, const std::string &out)
+bool decryptData(const byte *data, word32 dataLength, ecc_key &privKey, std::string &out)
 {
 
     byte outBuffer[MAX_MESSAGE_SIZE];
@@ -54,6 +54,7 @@ bool decryptData(const byte * data, word32 dataLength, ecc_key &privKey, const s
     int ret = wc_ecc_decrypt(&privKey, nullptr, reinterpret_cast<const byte *>(data), dataLength, outBuffer, &outLength, NULL);
     if (ret == 0)
     {
+        out = std::string(reinterpret_cast<char *>(outBuffer), outLength);
         return true;
     }
     return false;

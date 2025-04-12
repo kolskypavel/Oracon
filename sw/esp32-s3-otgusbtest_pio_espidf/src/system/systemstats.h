@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <wolfssl/wolfcrypt/ecc.h>
 
 // Contains the dynamic configuration of device
 struct DeviceConfig
@@ -14,6 +15,7 @@ struct DeviceStatus
 {
     // Static fields
     ecc_key key;
+    ecc_key serverKey;
     std::string serverIp;
     uint8_t serverPort;
     uint8_t deviceId;
@@ -23,7 +25,7 @@ struct DeviceStatus
     uint8_t signal;
     uint16_t punchesReceived;
 
-    //Socket related
+    // Socket related
     bool connected;
     bool authenticated;
     uint8_t socketId;

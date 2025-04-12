@@ -1,6 +1,6 @@
 #include "socket.h"
 
-bool writeData(const std::string &data)
+void writeData(const std::string &data)
 {
     if (nbiot_serial.available())
     {
@@ -8,9 +8,9 @@ bool writeData(const std::string &data)
         {
             nbiot_serial.write(data[i]);
         }
-        return true;
+        return;
     }
-    return false;
+    throw SerialException("Can't write to serial port");
 }
 
 std::string receiveRawData()
@@ -55,7 +55,7 @@ void connectSocket(DeviceStatus &status)
     }
 }
 
-bool sendData(const byte *data, int dataLen, int socketId)
+void sendData(const byte *data, int dataLen, int socketId)
 {
     std::string buffer;
     std::string hexData = dataToHex(data, dataLen);
@@ -71,15 +71,16 @@ bool sendData(const byte *data, int dataLen, int socketId)
     // Wait for positive reply
     if (buffer == COMMAND_RESPONSE_OK)
     {
-        return true;
+        return;
     }
 
     // TODO: error handling
-    return false;
 }
 
-bool sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
+void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
 {
+    // TODO: add counter
+
     std::string data = messageToString(protocolMessage);
 
     // TODO: encrypt
@@ -89,7 +90,7 @@ bool sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
     encryptData(data, status.key, buf, encSize);
 
     // Write to serial
-    return sendData(buf, encSize, status.socketId);
+    sendData(buf, encSize, status.socketId);
 }
 
 std::string getData()
@@ -116,6 +117,7 @@ ProtocolMessage getNewMessage(DeviceStatus &status)
     {
         return msg;
     }
+    throw std::invalid_argument("Invalid message");
 }
 
 void initMessage(ProtocolMessage &msg, DeviceStatus &status)
@@ -125,7 +127,7 @@ void initMessage(ProtocolMessage &msg, DeviceStatus &status)
     msg.token = status.token;
 }
 
-bool sendAck(DeviceStatus &status)
+void sendAck(DeviceStatus &status)
 {
     ProtocolMessage msg;
     initMessage(msg, status);
@@ -133,13 +135,13 @@ bool sendAck(DeviceStatus &status)
     return sendMessage(msg, status);
 }
 
-bool sendNack(DeviceStatus &status)
+void sendNack(DeviceStatus &status)
 {
     ProtocolMessage msg;
     initMessage(msg, status);
     msg.type = ProtocolMessageType::TYPE_NACK;
 
-    return sendMessage(msg, status);
+    sendMessage(msg, status);
 }
 
 void authenticateDevice(DeviceStatus &status)
@@ -148,11 +150,39 @@ void authenticateDevice(DeviceStatus &status)
     ProtocolMessage msg;
     initMessage(msg, status);
     msg.type = ProtocolMessageType::TYPE_CONNECT;
+    msg.data = generateSignatureData(status); // Add signature
 
-    // Wait for connect response
-    msg = getNewMessage(status);
+    sendMessage(msg, status);
 
-    // Send ACK/NACK
+    try
+    {
+        // Wait for connect response
+        msg = getNewMessage(status);
+
+        if (msg.type == ProtocolMessageType::TYPE_CONNECT)
+        {
+            std::string signature = stringToSignature(msg.data);
+            byte sigBytes[100]; // TODO: Init
+
+            word32 sigLength = signature.size() / 2; // Hex encoded string - actual size is half
+            hexToData(signature, sigBytes);
+
+            //Server ID should be always 0
+            if (validateSignature(sigBytes, sigLength, "0", status.serverKey))
+            {
+                sendAck(status);
+
+                status.authenticated = true;
+                return;
+            }
+        }
+    }
+    catch (const std::invalid_argument &a)
+    {
+    }
+
+    // Throw exception to terminate socket connection
+    throw SocketException("Failed to authenticate device");
 }
 
 bool sendStatus(DeviceStatus &status)
@@ -162,7 +192,44 @@ bool sendStatus(DeviceStatus &status)
     msg.type = ProtocolMessageType::TYPE_STATUS;
     msg.data = statusToString(status);
 
+    sendMessage(msg, status);
+    msg = getNewMessage(status);
+
+    if (msg.type == ProtocolMessageType::TYPE_ACK)
+    {
+        return true;
+    }
     return false;
+}
+
+void processStatus(DeviceStatus &status)
+{
+    sendStatus(status);
+    ProtocolMessage msg = getNewMessage(status);
+
+    if (msg.type == ProtocolMessageType::TYPE_CONF)
+    {
+        try
+        {
+            DeviceConfig config = stringToConfig(msg.data);
+            status.config = config;
+            sendAck(status);
+        }
+        // Error when receiving configuration
+        catch (const std::invalid_argument &exception)
+        {
+            sendNack(status);
+        }
+    }
+    else if (msg.type == ProtocolMessageType::TYPE_ACK)
+    {
+        // Everything OK
+        return;
+    }
+    else
+    {
+        // Undefined behavior
+    }
 }
 
 bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount)

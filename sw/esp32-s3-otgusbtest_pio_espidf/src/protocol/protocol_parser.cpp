@@ -152,8 +152,7 @@ ProtocolMessage parseMessage(const std::string &message)
 
     if (error)
     {
-        // TODO: log error
-        // return nullptr;
+        throw std::invalid_argument("Failed to parse message");
     }
 
     ProtocolMessage msg;
@@ -165,7 +164,7 @@ ProtocolMessage parseMessage(const std::string &message)
     return msg;
 }
 
-DeviceConfig dataToConfig(const std::string &data)
+DeviceConfig stringToConfig(const std::string &data)
 {
     DeviceConfig config;
     JsonDocument doc;
@@ -175,10 +174,27 @@ DeviceConfig dataToConfig(const std::string &data)
     // Error when parsing
     if (error)
     {
+        throw std::invalid_argument("Invalid configuration format");
     }
 
     config.statusDelay = statusDelay;
     return config;
+}
+
+std::string generateSignatureData(const DeviceStatus &status)
+{
+    std::string sigData = std::to_string(status.deviceId);
+    byte out[100]; // TODO: modify
+    word32 outLen;
+
+    generateSignature(sigData, status.key, out, outLen);
+    JsonDocument doc;
+    doc["signature"] = dataToHex(out, outLen);
+
+    std::string json;
+    serializeJson(doc, json);
+
+    return json;
 }
 
 bool startsWith(std::string text, std::string prefix)

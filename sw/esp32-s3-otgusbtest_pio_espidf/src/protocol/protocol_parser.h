@@ -14,25 +14,37 @@ std::string dataToHex(const byte *data, int dataLen);
 // Converts given HEX to byte data
 void hexToData(std::string in, byte *out);
 
+/**
+ * @brief Attempts to parse the given string to a protocol message
+ * @throws std::illegal_argument if the string is not in the valid format
+ */
 ProtocolMessage parseMessage(const std::string &message);
 
-bool validateMessage(const ProtocolMessage &message);
+bool validateMessage(const ProtocolMessage &message, DeviceStatus &status);
 
+// Serialize message to string
 std::string messageToString(const ProtocolMessage &message);
 
+// Serialize
 std::string messageTypeToString(ProtocolMessageType type);
 
+// Deserialize string to message type
 ProtocolMessageType stringToMessageType(const std::string &typeString);
 
-// Serializes a given status object to OraCon format
+//Generates signature data from status object
+std::string generateSignatureData(const DeviceStatus &status);
+
+// Serializes status object to OraCon format
 std::string statusToString(const DeviceStatus &status);
 
-// Serializes a given punch object to OraCon format
+// Serializes punch object to OraCon format
 std::string punchToString(const SIRecord &record);
 
+// Serializes punches to string
 std::string punchesToString(const SIRecord punches[], int size);
 
-DeviceConfig dataToConfig(const std::string &data);
+// Deserialize string to config object
+DeviceConfig stringToConfig(const std::string &data);
 
 // Checks if text starts with given prefix
 bool startsWith(std::string text, std::string prefix);

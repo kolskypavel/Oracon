@@ -81,9 +81,9 @@ bool generateSignature(const std::string &data, const ecc_key &privKey, byte *si
     return false;
 }
 
-bool validateSignature(const byte &signature, word32 sigLength, const std::string &data, const ecc_key &pubKey)
+bool validateSignature(const byte *signature, word32 sigLength, const std::string &data, const ecc_key &pubKey)
 {
-    int ret = wc_SignatureVerify(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), &signature, sigLength, &pubKey, sizeof(pubKey));
+    int ret = wc_SignatureVerify(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, sigLength, &pubKey, sizeof(pubKey));
 
     if (ret == 0)
     {

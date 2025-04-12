@@ -10,6 +10,7 @@
 #include "system/systemstats.h"
 #include "protocol/protocol_message.h"
 #include "protocol/socket.h"
+#include "protocol/exceptions.h"
 
 #include "esp32_usb_serial.h"
 #include "freertos/FreeRTOS.h"
@@ -29,7 +30,9 @@ uint8_t test[100];
 StatusLED status_led, network_led;
 QueueHandle_t punchQueue;
 
-SIRecord records[5];
+SIRecord punches[PUNCH_BUFFER_SIZE];
+bool punchesSent = true;
+int received = 0;
 
 // STATUS
 DeviceStatus currStatus;
@@ -200,7 +203,23 @@ void handle()
 // Gets the current counter value
 int getStatusTime()
 {
+  // TODO: implement
   return 0;
+}
+
+void initStatus()
+{
+  currStatus.connected = false;
+  currStatus.authenticated = false;
+  currStatus.counter = 0;
+  currStatus.punchesReceived = 0;
+
+  // TODO: read the values from flash
+
+  // currStatus.serverIp;
+  // currStatus.serverPort;
+  // currStatus.key;
+  // currStatus.serverKey;
 }
 
 void setup()
@@ -264,32 +283,21 @@ void setup()
   // INIT TIMERS
 
   // INIT QUEUE
-  punchQueue = xQueueCreate(QUEUE_SIZE, sizeof(SIRecord));
+  punchQueue = xQueueCreate(PUNCH_QUEUE_SIZE, sizeof(SIRecord));
 
   // INIT STATUS
-  currStatus.connected = false;
-  currStatus.authenticated = false;
+  initStatus();
 
   // INIT KEYS
 }
 
-void processStatus()
+void receivePunches()
 {
-
-  sendStatus(currStatus);
-  ProtocolMessage msg = getNewMessage(currStatus);
-
-  if (msg.type == ProtocolMessageType::TYPE_CONF)
+  //TODO: receive multiple objects
+  if (xQueueReceive(punchQueue, &punches, 0) == pdPASS)
   {
 
   }
-}
-
-bool receivePunches()
-{
-  // if (xQueueReceive(punchQueue,&buf,0 ))
-  // {
-  // }
 }
 
 void loop()
@@ -359,23 +367,29 @@ void loop()
       else
       {
         // PUNCHES?
-        if (receivePunches())
+        if (punchesSent)
         {
-          //  sendPunches();
+          receivePunches();
+          punchesSent = sendPunches(currStatus, punches, received);
         }
 
         // STATUS?
         if (getStatusTime() > config.statusDelay)
         {
-          processStatus();
+          processStatus(currStatus);
         }
       }
     }
-    catch (std::invalid_argument exception)
+    // Connection error -> disconnect socket
+    catch (const SocketException &exception)
     {
-      // Connection error -> disconnect socket
       currStatus.connected = false;
       closeSocket(currStatus);
+    }
+    // Serial write error - cable disconnected
+    catch (const SerialException &exception)
+    {
+      // TODO: signal out the error
     }
   }
 }

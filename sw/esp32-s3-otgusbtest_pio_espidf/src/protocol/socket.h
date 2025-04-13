@@ -23,7 +23,7 @@ void sendData(const byte *data, int dataLen, int socketId);
 std::string receiveRawData();
 
 // Receives and parses the raw data - converts and decrypts
-std::string getData();
+std::string getData(DeviceStatus &status);
 
 // Sends given protocol message
 void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status);
@@ -37,23 +37,25 @@ ProtocolMessage getNewMessage(DeviceStatus &status);
 // Init message with data from status struct
 void initMessage(ProtocolMessage &msg, DeviceStatus &status);
 
+// Sends confirmation message
 void sendAck(DeviceStatus &status);
 
 void sendNack(DeviceStatus &status);
 
+// Connects socket to a server and updates the status
 void connectSocket(DeviceStatus &status);
 
+// Attempts to authenticate device using OraCon handshake
 void authenticateDevice(DeviceStatus &status);
 
+// Closes the current socket in case of a failure
 void closeSocket(DeviceStatus &status);
 
-bool sendStatus(DeviceStatus &status);
+// Sends the current device status
+void sendStatus(DeviceStatus &status);
 
-void processStatus(DeviceStatus &status);
-
+// Sends the punches to the server, returns true for OK, false if the punches did not send
 bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount);
-
-void processPunches(DeviceStatus & status);
 
 // Get the current signal strength
 void getSignalStrength(DeviceStatus &status);

@@ -11,8 +11,9 @@ struct DeviceConfig
 };
 
 // Contains the current status of device
-struct DeviceStatus
+class DeviceStatus
 {
+public:
     // Static fields
     ecc_key key;
     ecc_key serverKey;
@@ -34,7 +35,7 @@ struct DeviceStatus
 
     // Device dynamic config
     DeviceConfig config;
-};
 
-// Get the current battery level - read from voltage
-int getBatteryLevel();
+    // Get the current battery level - read from voltage
+    void updateBatteryLevel();
+};

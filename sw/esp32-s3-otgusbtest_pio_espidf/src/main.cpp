@@ -4,6 +4,16 @@
  */
 
 #include <Arduino.h>
+#include <EEPROM.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+
+#include "esp32_usb_serial.h"
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/ecc.h>
+
 #include "led/statusled.hpp"
 #include "si/si_parser.h"
 #include "defines.h"
@@ -11,14 +21,6 @@
 #include "protocol/protocol_message.h"
 #include "protocol/socket.h"
 #include "protocol/exceptions.h"
-
-#include "esp32_usb_serial.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include <wolfssl/options.h>
-#include <wolfssl/wolfcrypt/ecc.h>
 
 SemaphoreHandle_t device_disconnected_sem;
 std::unique_ptr<CdcAcmDevice> vcp;
@@ -29,6 +31,10 @@ TaskHandle_t xHandle;
 uint8_t test[100];
 StatusLED status_led, network_led;
 QueueHandle_t punchQueue;
+
+// Timers
+unsigned long startSeconds;
+unsigned long currSeconds;
 
 SIRecord punches[PUNCH_BUFFER_SIZE];
 bool punchesSent = true;
@@ -201,10 +207,9 @@ void handle()
 }
 
 // Gets the current counter value
-int getStatusTime()
+int getCurrentTime()
 {
-  // TODO: implement
-  return 0;
+  return millis() / 1000;
 }
 
 void initStatus()
@@ -281,23 +286,24 @@ void setup()
   rs232_serial.begin(4800, SERIAL_8N1, RXD2, TXD2);
 
   // INIT TIMERS
+  startSeconds = getCurrentTime();
 
   // INIT QUEUE
   punchQueue = xQueueCreate(PUNCH_QUEUE_SIZE, sizeof(SIRecord));
 
   // INIT STATUS
   initStatus();
-
-  // INIT KEYS
 }
 
+// Receives punches till no punches are left or the buffer is full
 void receivePunches()
 {
-  //TODO: receive multiple objects
-  if (xQueueReceive(punchQueue, &punches, 0) == pdPASS)
+  int count = 0;
+  while (count < PUNCH_BUFFER_SIZE && xQueueReceive(punchQueue, &punches[count], 0) == pdPASS)
   {
-
+    count++;
   }
+  received = count;
 }
 
 void loop()
@@ -348,16 +354,15 @@ void loop()
   }
 
   // MAIN LOOP
-
-  // CONNECT
-  if (!currStatus.connected)
+  try
   {
-    connectSocket(currStatus);
-    // TODO: add delay
-  }
-  else
-  {
-    try
+    // CONNECT
+    if (!currStatus.connected)
+    {
+      connectSocket(currStatus);
+      // TODO: add delay
+    }
+    else
     {
       // AUTH PHASE
       if (!currStatus.authenticated)
@@ -370,26 +375,39 @@ void loop()
         if (punchesSent)
         {
           receivePunches();
-          punchesSent = sendPunches(currStatus, punches, received);
+          if (received > 0)
+          {
+            punchesSent = false; // In case exception gets thrown, so the records don't get lost
+            punchesSent = sendPunches(currStatus, punches, received);
+          }
         }
 
+        currSeconds = getCurrentTime();
+
         // STATUS?
-        if (getStatusTime() > config.statusDelay)
+        if ((currSeconds - startSeconds) > config.statusDelay)
         {
-          processStatus(currStatus);
+          //Update stats
+          getSignalStrength(currStatus);
+          currStatus.updateBatteryLevel();
+
+          sendStatus(currStatus);
+          startSeconds = getCurrentTime();
         }
       }
     }
-    // Connection error -> disconnect socket
-    catch (const SocketException &exception)
-    {
-      currStatus.connected = false;
-      closeSocket(currStatus);
-    }
-    // Serial write error - cable disconnected
-    catch (const SerialException &exception)
-    {
-      // TODO: signal out the error
-    }
+  }
+  // Connection error -> disconnect socket
+  catch (const SocketException &exception)
+  {
+    currStatus.connected = false;
+    closeSocket(currStatus);
+
+    // TODO: set out the status LEDs
+  }
+  // Serial write error - cable disconnected
+  catch (const SerialException &exception)
+  {
+    // TODO: signal out the error
   }
 }

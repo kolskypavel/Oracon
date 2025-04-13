@@ -1,6 +1,7 @@
 #include "systemstats.h"
 
-int getBatteryLevel()
+void DeviceStatus::updateBatteryLevel()
 {
-    return 0;
+    // TODO: read from device
+    this->battery = 0;
 }

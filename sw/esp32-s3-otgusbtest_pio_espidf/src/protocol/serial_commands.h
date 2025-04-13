@@ -9,12 +9,13 @@ Reference: https://www.waveshare.com/w/upload/c/c2/SIM7020_Series_TCPIP_Applicat
 const std::string COMMAND_CREATE_SOCKET = "AT+CSOC=1,1,1";
 const std::string COMMAND_CONNECT = "AT+CSOCON=";
 const std::string COMMAND_SEND = "AT+CSOSEND=";     //Structure  AT+CSOSEND=<socket_id>,<len>,<data>
-const std::string COMMAND_INCOMMING = "+CSONMI:";
+const std::string COMMAND_INCOMMING_DATA = "+CSONMI:";
 const std::string COMMAND_CLOSE = "AT+CSOCL=";
-const std::string COMMAND_SIGNAL = "+CSQ";
+const std::string COMMAND_SIGNAL = "AT+CSQ";
 
 const std::string COMMAND_RESPONSE_ERROR = "+CSOERR:";
 const std::string COMMAND_RESPONSE_OK = "OK";
 const std::string COMMAND_RESPONSE_CREATED = "+CSOC:";
+const std::string COMMAND_RESPONSE_SIGNAL = "CSQ:";
 
 //Error codes

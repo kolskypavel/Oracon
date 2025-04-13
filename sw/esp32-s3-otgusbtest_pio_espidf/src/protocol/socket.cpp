@@ -38,7 +38,7 @@ void connectSocket(DeviceStatus &status)
 
     if (startsWith(resp, COMMAND_RESPONSE_CREATED))
     {
-        // TODO: Extract the socket ID
+        // TODO: Extract the socket ID - verify
         int socketId = std::stoi(getSuffix(resp, ':'));
 
         std::string connect = COMMAND_CONNECT;
@@ -74,16 +74,17 @@ void sendData(const byte *data, int dataLen, int socketId)
         return;
     }
 
-    // TODO: error handling
+    // TODO: detailed error handling
+    else if (startsWith(buffer, COMMAND_RESPONSE_ERROR))
+    {
+        throw SocketException("Failed to send data");
+    }
 }
 
 void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
 {
-    // TODO: add counter
-
     std::string data = messageToString(protocolMessage);
 
-    // TODO: encrypt
     byte buf[MAX_MESSAGE_SIZE];
     word32 encSize;
 
@@ -93,13 +94,31 @@ void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
     sendData(buf, encSize, status.socketId);
 }
 
-std::string getData()
+std::string getData(DeviceStatus &status)
 {
     std::string received = receiveRawData();
+
+    // Check if data doesn't exceed max message size
+    if (startsWith(received, COMMAND_INCOMMING_DATA) && received.size() <= (MAX_MESSAGE_SIZE + COMMAND_INCOMMING_DATA.size()))
+    {
+        std::string trimmed = getSuffix(received, ':'); // Trim the message indicator
+        byte rawData[MAX_MESSAGE_SIZE];
+        hexToData(trimmed, rawData);
+        std::string out;
+
+        if (decryptData(rawData, (trimmed.size() / 2), status.key, out))
+        {
+            return out;
+        }
+        throw std::invalid_argument("Failed to decrypt data");
+    }
+
+    throw std::invalid_argument("Invalid format when receiving data");
 }
 
 bool validateMessage(const ProtocolMessage &msg, DeviceStatus &status)
 {
+    // TODO: fix counter
     if (msg.counter == status.counter && msg.token == status.token)
     {
         return true;
@@ -109,12 +128,12 @@ bool validateMessage(const ProtocolMessage &msg, DeviceStatus &status)
 
 ProtocolMessage getNewMessage(DeviceStatus &status)
 {
-    std::string received = getData();
+    std::string received = getData(status);
     ProtocolMessage msg = parseMessage(received);
 
-    // TODO: add validation
     if (validateMessage(msg, status))
     {
+        status.counter++; // TODO: fix counter
         return msg;
     }
     throw std::invalid_argument("Invalid message");
@@ -161,17 +180,16 @@ void authenticateDevice(DeviceStatus &status)
 
         if (msg.type == ProtocolMessageType::TYPE_CONNECT)
         {
-            std::string signature = stringToSignature(msg.data);
+            std::string signature = dataToSignature(msg.data);
             byte sigBytes[100]; // TODO: Init
 
             word32 sigLength = signature.size() / 2; // Hex encoded string - actual size is half
             hexToData(signature, sigBytes);
 
-            //Server ID should be always 0
+            // Server ID should be always 0
             if (validateSignature(sigBytes, sigLength, "0", status.serverKey))
             {
                 sendAck(status);
-
                 status.authenticated = true;
                 return;
             }
@@ -185,7 +203,7 @@ void authenticateDevice(DeviceStatus &status)
     throw SocketException("Failed to authenticate device");
 }
 
-bool sendStatus(DeviceStatus &status)
+void sendStatus(DeviceStatus &status)
 {
     ProtocolMessage msg;
     initMessage(msg, status);
@@ -193,19 +211,8 @@ bool sendStatus(DeviceStatus &status)
     msg.data = statusToString(status);
 
     sendMessage(msg, status);
+
     msg = getNewMessage(status);
-
-    if (msg.type == ProtocolMessageType::TYPE_ACK)
-    {
-        return true;
-    }
-    return false;
-}
-
-void processStatus(DeviceStatus &status)
-{
-    sendStatus(status);
-    ProtocolMessage msg = getNewMessage(status);
 
     if (msg.type == ProtocolMessageType::TYPE_CONF)
     {
@@ -229,6 +236,7 @@ void processStatus(DeviceStatus &status)
     else
     {
         // Undefined behavior
+        throw SocketException("Undefined behavior when receiving status");
     }
 }
 
@@ -260,11 +268,16 @@ void closeSocket(DeviceStatus &status)
 
 void getSignalStrength(DeviceStatus &status)
 {
-    writeData("AT" + COMMAND_SIGNAL);
+    writeData(COMMAND_SIGNAL);
     std::string response = receiveRawData();
 
-    // Parse the response
-    uint8_t signal;
+    if (startsWith(response, COMMAND_RESPONSE_SIGNAL))
+    {
+        std::string trimmed = getSuffix(response, ':');
 
-    status.signal = signal;
+        // TODO: Parse the response
+        uint8_t signal;
+
+        status.signal = signal;
+    }
 }

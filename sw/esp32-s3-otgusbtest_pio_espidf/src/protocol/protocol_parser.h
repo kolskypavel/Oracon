@@ -14,6 +14,12 @@ std::string dataToHex(const byte *data, int dataLen);
 // Converts given HEX to byte data
 void hexToData(std::string in, byte *out);
 
+// Checks if text starts with given prefix
+bool startsWith(std::string text, std::string prefix);
+
+// Gets suffix after char c
+std::string getSuffix(std::string input, char c);
+
 /**
  * @brief Attempts to parse the given string to a protocol message
  * @throws std::illegal_argument if the string is not in the valid format
@@ -25,7 +31,7 @@ bool validateMessage(const ProtocolMessage &message, DeviceStatus &status);
 // Serialize message to string
 std::string messageToString(const ProtocolMessage &message);
 
-// Serialize
+// Serialize message type to string
 std::string messageTypeToString(ProtocolMessageType type);
 
 // Deserialize string to message type
@@ -43,11 +49,8 @@ std::string punchToString(const SIRecord &record);
 // Serializes punches to string
 std::string punchesToString(const SIRecord punches[], int size);
 
+// Deserialize sign with signature
+std::string dataToSignature(const std::string &data);
+
 // Deserialize string to config object
 DeviceConfig stringToConfig(const std::string &data);
-
-// Checks if text starts with given prefix
-bool startsWith(std::string text, std::string prefix);
-
-// Gets suffix after char c
-std::string getSuffix(std::string input, char c);

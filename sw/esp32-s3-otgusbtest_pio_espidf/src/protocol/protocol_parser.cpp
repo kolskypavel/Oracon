@@ -71,7 +71,7 @@ ProtocolMessageType stringToMessageType(const std::string &typeString)
     else
     {
         // Unknown type -> exception
-        throw std::invalid_argument("Invalid protocol message type");
+        throw std::invalid_argument("Invalid string for protocol message type");
     }
 }
 
@@ -82,8 +82,7 @@ std::string messageToString(const ProtocolMessage &message)
     doc["device"] = message.deviceId;
     doc["counter"] = message.counter;
     doc["token"] = message.token;
-
-    // TODO: add data
+    doc["data"] = message.data;
 
     std::string output;
     serializeJson(doc, output);
@@ -144,13 +143,13 @@ ProtocolMessage parseMessage(const std::string &message)
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, message);
 
-    std::string stringType = doc["type"];
-    std::string data = doc["data"];
-    std::string token = doc["token"];
-    int deviceId = doc["device"];
-    int counter = doc["counter"];
+    std::string stringType = doc["type"] | "unknown";
+    std::string data = doc["data"] | "unknown";
+    std::string token = doc["token"] | "unknown";
+    int deviceId = doc["device"] | -1;
+    int counter = doc["counter"] | -1;
 
-    if (error)
+    if (error || stringType == "unknown" || data == "unknown" || token == "unknown" || deviceId == -1 || counter == -1)
     {
         throw std::invalid_argument("Failed to parse message");
     }
@@ -164,15 +163,30 @@ ProtocolMessage parseMessage(const std::string &message)
     return msg;
 }
 
+std::string dataToSignature(const std::string &data)
+{
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, data);
+    std::string signature = doc["signature"] | "unknown";
+
+    // Error when parsing
+    if (error || signature == "unknown")
+    {
+        throw std::invalid_argument("Invalid signature format");
+    }
+
+    return signature;
+}
+
 DeviceConfig stringToConfig(const std::string &data)
 {
     DeviceConfig config;
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, data);
-    int statusDelay = doc["statusDelay"];
+    int statusDelay = doc["statusDelay"] | -1;
 
     // Error when parsing
-    if (error)
+    if (error || statusDelay == -1)
     {
         throw std::invalid_argument("Invalid configuration format");
     }

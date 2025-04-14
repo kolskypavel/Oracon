@@ -13,8 +13,6 @@
 * pulsing green - connection to the app is active
 * blue flick - pakcket was either sent or received
 */
-
-//todo: add button type led + pridat na pcb
 	
 class StatusLED  
 {

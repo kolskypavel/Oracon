@@ -191,6 +191,11 @@ DeviceConfig stringToConfig(const std::string &data)
         throw std::invalid_argument("Invalid configuration format");
     }
 
+    if (statusDelay < MIN_STATUS_DELAY || statusDelay > MAX_STATUS_DELAY)
+    {
+        throw std::invalid_argument("Invalid status delay: " + statusDelay);
+    }
+
     config.statusDelay = statusDelay;
     return config;
 }
@@ -222,5 +227,12 @@ bool startsWith(std::string text, std::string prefix)
 
 std::string getSuffix(std::string input, char c)
 {
-    return input.substr(input.find(c) + 1);
+    if (input.find(c) != std::string::npos)
+    {
+        return input.substr(input.find(c) + 1);
+    }
+    else
+    {
+        throw std::invalid_argument("Character not found in input string");
+    }
 }

@@ -16,6 +16,6 @@ const std::string COMMAND_SIGNAL = "AT+CSQ";
 const std::string COMMAND_RESPONSE_ERROR = "+CSOERR:";
 const std::string COMMAND_RESPONSE_OK = "OK";
 const std::string COMMAND_RESPONSE_CREATED = "+CSOC:";
-const std::string COMMAND_RESPONSE_SIGNAL = "CSQ:";
+const std::string COMMAND_RESPONSE_SIGNAL = "+CSQ:";
 
 //Error codes

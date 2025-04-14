@@ -22,6 +22,8 @@
 #include "protocol/socket.h"
 #include "protocol/exceptions.h"
 
+#include "secrets.h"
+
 SemaphoreHandle_t device_disconnected_sem;
 std::unique_ptr<CdcAcmDevice> vcp;
 bool isConnected = false;
@@ -221,10 +223,20 @@ void initStatus()
 
   // TODO: read the values from flash
 
-  // currStatus.serverIp;
-  // currStatus.serverPort;
-  // currStatus.key;
-  // currStatus.serverKey;
+  try
+  {
+    currStatus.serverIp = SERVER_IP;
+    currStatus.serverPort = SERVER_PORT;
+    currStatus.key = loadKey(DEVICE_PRIVATE_KEY, true);
+    currStatus.serverKey = loadKey(SERVER_PUBLIC_KEY, false);
+  }
+  catch (const std::runtime_error &error)
+  {
+    // Failed to init keys
+    currStatus.runStatus = RunStatus::INIT_ERROR;
+  }
+  currStatus.updateBatteryLevel();
+  getSignalStrength(currStatus);
 }
 
 void setup()
@@ -311,103 +323,112 @@ void loop()
   status_led.show();
   network_led.show();
 
-  if (usbReady)
+  if (currStatus.runStatus != RunStatus::INIT_ERROR)
   {
-    handle();
-    vTaskDelay(pdMS_TO_TICKS(10));
-  }
+    if (usbReady)
+    {
+      handle();
+      vTaskDelay(pdMS_TO_TICKS(10));
+    }
 
-  if (Serial.available())
-  {
-    char c = Serial.read();
-    Serial.print("writing to serial1: ");
-    Serial.println(c);
-    Serial1.write(c);
-  }
+    if (Serial.available())
+    {
+      char c = Serial.read();
+      Serial.print("writing to serial1: ");
+      Serial.println(c);
+      Serial1.write(c);
+    }
 
-  if (rs232_serial.available())
-  {
-    for (int i = 0; i < 100; i++)
+    if (rs232_serial.available())
     {
-      test[i] = 0;
-    }
-    Serial.println("reading from rs232_serial: ");
-    int i = 1;
-    while (rs232_serial.available())
-    {
-      test[i] = rs232_serial.read();
-      i++;
-      delay(2);
-      // Serial.print(Serial1.read(), HEX);
-    }
-    // Serial.println("done reading from rs232_serial: ");
-    ESP_LOGI("rx_callback", "Received SI-Card data from r232 serial");
-    for (int i = 0; i < 100; i++)
-    {
-      Serial.print(test[i], HEX);
-      Serial.print(",");
-    }
-    si_parse(test, i);
-    network_led.indicate(255, 0, 0, StatusLED::SOLID, 0.5, 1000);
-    si_dumpdata();
-    si_clear_data();
-  }
-
-  // MAIN LOOP
-  try
-  {
-    // CONNECT
-    if (!currStatus.connected)
-    {
-      connectSocket(currStatus);
-      // TODO: add delay
-    }
-    else
-    {
-      // AUTH PHASE
-      if (!currStatus.authenticated)
+      for (int i = 0; i < 100; i++)
       {
-        authenticateDevice(currStatus);
+        test[i] = 0;
+      }
+      Serial.println("reading from rs232_serial: ");
+      int i = 1;
+      while (rs232_serial.available())
+      {
+        test[i] = rs232_serial.read();
+        i++;
+        delay(2);
+        // Serial.print(Serial1.read(), HEX);
+      }
+      // Serial.println("done reading from rs232_serial: ");
+      ESP_LOGI("rx_callback", "Received SI-Card data from r232 serial");
+      for (int i = 0; i < 100; i++)
+      {
+        Serial.print(test[i], HEX);
+        Serial.print(",");
+      }
+      si_parse(test, i);
+      network_led.indicate(255, 0, 0, StatusLED::SOLID, 0.5, 1000);
+      si_dumpdata();
+      si_clear_data();
+    }
+
+    // MAIN LOOP
+    try
+    {
+      // CONNECT
+      if (!currStatus.connected)
+      {
+        connectSocket(currStatus);
+        // TODO: add delay
       }
       else
       {
-        // PUNCHES?
-        if (punchesSent)
+        // AUTH PHASE
+        if (!currStatus.authenticated)
         {
-          receivePunches();
-          if (received > 0)
-          {
-            punchesSent = false; // In case exception gets thrown, so the records don't get lost
-            punchesSent = sendPunches(currStatus, punches, received);
-          }
+          authenticateDevice(currStatus);
         }
-
-        currSeconds = getCurrentTime();
-
-        // STATUS?
-        if ((currSeconds - startSeconds) > config.statusDelay)
+        else
         {
-          //Update stats
-          getSignalStrength(currStatus);
-          currStatus.updateBatteryLevel();
+          // PUNCHES?
+          if (punchesSent)
+          {
+            receivePunches();
+            if (received > 0)
+            {
+              punchesSent = false; // In case exception gets thrown, so the records don't get lost
+              punchesSent = sendPunches(currStatus, punches, received);
+            }
+          }
 
-          sendStatus(currStatus);
-          startSeconds = getCurrentTime();
+          currSeconds = getCurrentTime();
+
+          // STATUS?
+          if ((currSeconds - startSeconds) > config.statusDelay)
+          {
+            // Update stats
+            getSignalStrength(currStatus);
+            currStatus.updateBatteryLevel();
+
+            sendStatus(currStatus);
+            startSeconds = getCurrentTime();
+          }
         }
       }
     }
-  }
-  // Connection error -> disconnect socket
-  catch (const SocketException &exception)
-  {
-    currStatus.connected = false;
-    closeSocket(currStatus);
+    // Connection error -> disconnect socket
+    catch (const SocketException &exception)
+    {
+      currStatus.connected = false;
+      currStatus.authenticated = false;
+      closeSocket(currStatus);
 
-    // TODO: set out the status LEDs
-  }
-  // Serial write error - cable disconnected
-  catch (const SerialException &exception)
-  {
-    // TODO: signal out the error
+      // TODO: set out the status LEDs
+      currStatus.runStatus = RunStatus::SOCKET_ERROR;
+    }
+    // Serial write error - cable disconnected
+    catch (const SerialException &exception)
+    {
+      currStatus.connected = false;
+      currStatus.authenticated = false;
+
+      // TODO: signal out the error
+      currStatus.runStatus = RunStatus::SERIAL_ERROR;
+    }
   }
 }

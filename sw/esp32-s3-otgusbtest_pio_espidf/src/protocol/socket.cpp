@@ -269,15 +269,28 @@ void closeSocket(DeviceStatus &status)
 void getSignalStrength(DeviceStatus &status)
 {
     writeData(COMMAND_SIGNAL);
-    std::string response = receiveRawData();
+    std::string response = receiveRawData(); // Format +CSQ: <rssi>,<ber>
 
     if (startsWith(response, COMMAND_RESPONSE_SIGNAL))
     {
         std::string trimmed = getSuffix(response, ':');
+        size_t commaPos = trimmed.find(',');
+        if (commaPos != std::string::npos)
+        {
+            std::string rssiStr = trimmed.substr(0, commaPos);
+            int rssi = std::stoi(rssiStr);
 
-        // TODO: Parse the response
-        uint8_t signal;
-
-        status.signal = signal;
+            // NB-Iot signal not detectable
+            if (rssi == 99)
+            {
+                status.signal = 0;
+            }
+            // Convert RSSI to dBm using TS 27.007 Section 8.5
+            else if (rssi >= 0 && rssi <= 31)
+            {
+                status.signal = 113 - (rssi * 2); // dBm calculation
+            }
+        }
     }
+    throw std::invalid_argument("Invalid signal strength response");
 }

@@ -91,3 +91,46 @@ bool validateSignature(const byte *signature, word32 sigLength, const std::strin
     }
     return false;
 }
+
+ecc_key loadKey(const char *keyPem, bool isPrivate)
+{
+    ecc_key key;
+    int ret = 0;
+    word32 idx = 0;
+
+    byte derBuff[MAX_DER_BUFF_SIZE];
+
+    // Initialize the ECC key structure
+    ret = wc_ecc_init(&key);
+    if (ret != 0)
+    {
+        throw std::runtime_error("Failed to initialize ECC key");
+    }
+
+    // Convert to DER
+    ret = wc_KeyPemToDer(reinterpret_cast<const unsigned char *>(keyPem), strlen(keyPem), derBuff, MAX_DER_BUFF_SIZE, nullptr);
+
+    if (ret < 0)
+    {
+        throw std::runtime_error("Failed to convert PEM key to DER");
+    }
+
+    if (isPrivate)
+    {
+        // Load the key
+        ret = wc_EccPrivateKeyDecode(derBuff, &idx, &key, ret);
+        if (ret != 0)
+        {
+            throw std::runtime_error("Failed to decode private key from DER");
+        }
+    }
+    else
+    {
+        ret = wc_EccPublicKeyDecode(derBuff, &idx, &key, ret);
+        if (ret != 0)
+        {
+            throw std::runtime_error("Failed to decode public key from DER");
+        }
+    }
+    return key;
+}

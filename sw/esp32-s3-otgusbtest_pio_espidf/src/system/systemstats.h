@@ -4,10 +4,18 @@
 #include <string>
 #include <wolfssl/wolfcrypt/ecc.h>
 
+enum RunStatus
+{
+    OK,
+    INIT_ERROR,
+    SERIAL_ERROR,
+    SOCKET_ERROR
+};
+
 // Contains the dynamic configuration of device
 struct DeviceConfig
 {
-    int statusDelay;
+    uint8_t statusDelay;
 };
 
 // Contains the current status of device
@@ -18,20 +26,21 @@ public:
     ecc_key key;
     ecc_key serverKey;
     std::string serverIp;
-    uint8_t serverPort;
-    uint8_t deviceId;
+    uint16_t serverPort;
+    uint16_t deviceId;
 
     // System information
     uint8_t battery;
     uint8_t signal;
-    uint16_t punchesReceived;
+    uint32_t punchesReceived;
+    RunStatus runStatus;
 
     // Socket related
     bool connected;
     bool authenticated;
     uint8_t socketId;
     std::string token;
-    uint16_t counter;
+    long counter;
 
     // Device dynamic config
     DeviceConfig config;

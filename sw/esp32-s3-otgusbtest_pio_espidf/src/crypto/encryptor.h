@@ -18,3 +18,12 @@ bool generateSignature(const std::string &data, const ecc_key &privKey, byte *si
 bool validateSignature(const byte *signature, word32 sigLength, const std::string &data, const ecc_key &key);
 
 ecc_key loadKey(const char *keyPem, bool isPrivate);
+
+/*
+ *  Following things modified in wolfssl
+ *   #undef HAVE___UINT128_T
+ *   #define HAVE_ECC_ENCRYPT
+ *   #define HAVE_HKDF
+ *   #define WOLFCRYPT_ONLY
+ *   # logging function disabled
+ */

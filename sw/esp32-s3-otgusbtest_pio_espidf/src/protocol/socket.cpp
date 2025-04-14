@@ -118,8 +118,7 @@ std::string getData(DeviceStatus &status)
 
 bool validateMessage(const ProtocolMessage &msg, DeviceStatus &status)
 {
-    // TODO: fix counter
-    if (msg.counter == status.counter && msg.token == status.token)
+    if (msg.token == status.token)
     {
         return true;
     }
@@ -142,7 +141,6 @@ ProtocolMessage getNewMessage(DeviceStatus &status)
 void initMessage(ProtocolMessage &msg, DeviceStatus &status)
 {
     msg.deviceId = status.deviceId;
-    msg.counter = ++status.counter;
     msg.token = status.token;
 }
 

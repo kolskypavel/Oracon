@@ -80,7 +80,6 @@ std::string messageToString(const ProtocolMessage &message)
     JsonDocument doc;
 
     doc["device"] = message.deviceId;
-    doc["counter"] = message.counter;
     doc["token"] = message.token;
     doc["data"] = message.data;
 
@@ -147,9 +146,8 @@ ProtocolMessage parseMessage(const std::string &message)
     std::string data = doc["data"] | "unknown";
     std::string token = doc["token"] | "unknown";
     int deviceId = doc["device"] | -1;
-    int counter = doc["counter"] | -1;
 
-    if (error || stringType == "unknown" || data == "unknown" || token == "unknown" || deviceId == -1 || counter == -1)
+    if (error || stringType == "unknown" || data == "unknown" || token == "unknown" || deviceId == -1)
     {
         throw std::invalid_argument("Failed to parse message");
     }
@@ -157,7 +155,6 @@ ProtocolMessage parseMessage(const std::string &message)
     ProtocolMessage msg;
     msg.type = stringToMessageType(stringType);
     msg.deviceId = deviceId;
-    msg.counter = counter;
     msg.token = token;
 
     return msg;
@@ -204,7 +201,7 @@ std::string generateSignatureData(const DeviceStatus &status)
 {
     std::string sigData = std::to_string(status.deviceId);
     byte out[100]; // TODO: modify
-    word32 outLen;
+    word32 outLen = 0;
 
     generateSignature(sigData, status.key, out, outLen);
     JsonDocument doc;

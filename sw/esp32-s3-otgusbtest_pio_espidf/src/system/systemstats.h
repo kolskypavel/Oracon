@@ -6,7 +6,7 @@
 
 enum RunStatus
 {
-    OK,
+    STATUS_OK,
     INIT_ERROR,
     SERIAL_ERROR,
     SOCKET_ERROR

@@ -19,7 +19,6 @@ struct ProtocolMessage
 {
     ProtocolMessageType type;
     uint16_t deviceId;
-    long counter;
     std::string token;
     std::string data;
     std::string signature;

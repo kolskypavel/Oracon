@@ -4,6 +4,19 @@
 #include <string>
 #include <wolfssl/wolfcrypt/ecc.h>
 
+// Current status of socket
+enum SocketStatus
+{
+    SOCKET_OFF,
+    SOCKET_SIM_OK,
+    SOCKET_SIGNAL_OK,
+    SOCKET_SERVICE_REGISTERED,
+    SOCKET_CREATED,
+    SOCKET_CONNECTED,
+    SOCKET_AUTHENTICATED
+};
+
+// Used for LEDs
 enum RunStatus
 {
     STATUS_OK,
@@ -36,11 +49,9 @@ public:
     RunStatus runStatus;
 
     // Socket related
-    bool connected;
-    bool authenticated;
+    SocketStatus socketStatus;
     uint8_t socketId;
     std::string token;
-    long counter;
 
     // Device dynamic config
     DeviceConfig config;

@@ -24,6 +24,44 @@ void hexToData(std::string in, byte *out)
     }
 }
 
+bool startsWith(std::string text, std::string prefix)
+{
+    if (text.rfind(prefix, 0) == 0)
+    {
+        return true;
+    }
+    return false;
+}
+
+std::string getSuffix(std::string input, char c)
+{
+    if (input.find(c) != std::string::npos)
+    {
+        return input.substr(input.find(c) + 1);
+    }
+    else
+    {
+        throw std::invalid_argument("Character not found in input string");
+    }
+}
+
+std::pair<int, int> getValuesFromAt(std::string command)
+{
+    std::string trimmed = getSuffix(command, ':');
+    size_t commaPos = trimmed.find(',');
+    if (commaPos != std::string::npos)
+    {
+        std::string firstStr = trimmed.substr(0, commaPos);
+        std::string secondStr = trimmed.substr(commaPos);
+        int first = std::stoi(firstStr);
+        int second = std::stoi(secondStr);
+
+        return std::make_pair(first, second);
+    }
+
+    throw std::invalid_argument("Invalid command format - can't extract values");
+}
+
 std::string messageTypeToString(ProtocolMessageType type)
 {
     switch (type)
@@ -92,10 +130,10 @@ std::string messageToString(const ProtocolMessage &message)
 std::string statusToString(const DeviceStatus &status)
 {
     JsonDocument doc;
-    JsonObject configJson = doc.createNestedObject("config");
+    JsonObject configJson = doc["config"].to<JsonObject>();
     configJson["statusDelay"] = status.config.statusDelay;
 
-    JsonObject statusObj = doc.createNestedObject("status");
+    JsonObject statusObj = doc["status"].to<JsonObject>();
     statusObj["battery"] = status.battery;
     statusObj["signal"] = status.signal;
     statusObj["punchesReceived"] = status.punchesReceived;
@@ -125,7 +163,7 @@ std::string punchesToString(const SIRecord punches[], int size)
 
     for (int i = 0; i < size; ++i)
     {
-        JsonObject punchObj = punchesArray.createNestedObject();
+        JsonObject punchObj = punchesArray.add<JsonObject>();
         punchObj["order"] = punches[i].order;
         punchObj["stationNumber"] = punches[i].stationNumber;
         punchObj["cardNumber"] = punches[i].cardNumber;
@@ -211,25 +249,4 @@ std::string generateSignatureData(const DeviceStatus &status)
     serializeJson(doc, json);
 
     return json;
-}
-
-bool startsWith(std::string text, std::string prefix)
-{
-    if (text.rfind(prefix, 0) == 0)
-    {
-        return true;
-    }
-    return false;
-}
-
-std::string getSuffix(std::string input, char c)
-{
-    if (input.find(c) != std::string::npos)
-    {
-        return input.substr(input.find(c) + 1);
-    }
-    else
-    {
-        throw std::invalid_argument("Character not found in input string");
-    }
 }

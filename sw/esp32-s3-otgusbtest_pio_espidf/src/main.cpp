@@ -4,7 +4,8 @@
  */
 
 #include <Arduino.h>
-#include <EEPROM.h>
+#include <Preferences.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -22,6 +23,7 @@
 #include "protocol/socket.h"
 #include "protocol/exceptions.h"
 
+// DO NOT INCLUDE in VCS
 #include "secrets.h"
 
 SemaphoreHandle_t device_disconnected_sem;
@@ -35,8 +37,10 @@ StatusLED status_led, network_led;
 QueueHandle_t punchQueue;
 
 // Timers
-unsigned long startSeconds;
-unsigned long currSeconds;
+unsigned long statusStartSeconds;
+unsigned long statusCurrSeconds;
+unsigned long measureStartSeconds;
+unsigned long measureCurrSeconds;
 
 SIRecord punches[PUNCH_BUFFER_SIZE];
 bool punchesSent = true;
@@ -46,6 +50,8 @@ int received = 0;
 DeviceStatus currStatus;
 DeviceConfig config;
 ProtocolMessage message;
+
+Preferences prefs;
 
 /**
  * @brief Data received callback
@@ -216,12 +222,18 @@ int getCurrentTime()
 
 void initStatus()
 {
-  currStatus.connected = false;
-  currStatus.authenticated = false;
-  currStatus.counter = 0;
+  currStatus.socketStatus = SocketStatus::SOCKET_OFF;
   currStatus.punchesReceived = 0;
 
-  // TODO: read the values from flash
+  // If config values are stored in memory, use them, otherwise use the preset
+  if (prefs.isKey("statusDelay"))
+  {
+    currStatus.config.statusDelay = prefs.getUChar("statusDelay");
+  }
+  else
+  {
+    currStatus.config.statusDelay = INIT_STATUS_DELAY;
+  }
 
   try
   {
@@ -234,77 +246,74 @@ void initStatus()
   {
     // Failed to init keys
     currStatus.runStatus = RunStatus::INIT_ERROR;
+    status_led.setColorPreset(StatusLED::RED);
+    return;
   }
-  currStatus.updateBatteryLevel();
-  getSignalStrength(currStatus);
+  ESP_LOGI("INIT", "Status init successful");
 }
 
 void setup()
 {
+  // Init serial ports
   usb_serial.begin(115200);
+  nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
+  rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
 
   // INIT LEDS
-  status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
-  network_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
-
-  status_led.setEnabled(true);
-  status_led.setPulse(1);
-  status_led.setColor(255, 0, 0);
-  network_led.setEnabled(true);
-  network_led.setPulse(2);
-  network_led.setColor(0, 255, 0);
-
-  if (ESP_OK != usb_serial_init())
-  {
-    Serial.println("Initialisation failed");
-  }
-  else
-  {
-    if (ESP_OK != usb_serial_create_task())
-    {
-      Serial.println("Task Creation failed");
-    }
-    else
-    {
-      Serial.println("Success");
-    }
-    device_disconnected_sem = xSemaphoreCreateBinary();
-    if (device_disconnected_sem == NULL)
-    {
-      Serial.println("Semaphore creation failed");
-      return;
-    }
-    BaseType_t res = xTaskCreatePinnedToCore(
-        esp_usb_serial_connection_task, "esp_usb_serial_task",
-        ESP_USB_SERIAL_TASK_SIZE, NULL, ESP_USB_SERIAL_TASK_PRIORITY, &xHandle,
-        ESP_USB_SERIAL_TASK_CORE);
-    if (res != pdPASS || !xHandle)
-    {
-      Serial.println("Task creation failed");
-      return;
-    }
-    Serial.println("USB Serial Connection Task created successfully");
-  }
-  usbReady = true;
-
-  // status_led = StatusLED(1);
+  // status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
+  // network_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
   // status_led.setEnabled(true);
-  // status_led.setPulse(2);
-  // status_led.setColor(0, 0, 255);
+  // network_led.setEnabled(true);
 
-  // FastLED.addLeds<WS2812B, 48, GRB>(leds, 1);
-  // stled_setup();
-  nbiot_serial.begin(115200, SERIAL_8N1, RXD1, TXD1);
-  rs232_serial.begin(4800, SERIAL_8N1, RXD2, TXD2);
+  // if (ESP_OK != usb_serial_init())
+  // {
+  //   Serial.println("Initialization failed");
+  // }
+  // else
+  // {
+  //   if (ESP_OK != usb_serial_create_task())
+  //   {
+  //     Serial.println("Task Creation failed");
+  //   }
+  //   else
+  //   {
+  //     Serial.println("Success");
+  //   }
+  //   device_disconnected_sem = xSemaphoreCreateBinary();
+  //   if (device_disconnected_sem == NULL)
+  //   {
+  //     Serial.println("Semaphore creation failed");
+  //     return;
+  //   }
+  //   BaseType_t res = xTaskCreatePinnedToCore(
+  //       esp_usb_serial_connection_task, "esp_usb_serial_task",
+  //       ESP_USB_SERIAL_TASK_SIZE, NULL, ESP_USB_SERIAL_TASK_PRIORITY, &xHandle,
+  //       ESP_USB_SERIAL_TASK_CORE);
+
+  //   if (res != pdPASS || !xHandle)
+  //   {
+  //     Serial.println("Task creation failed");
+  //     return;
+  //   }
+  //   Serial.println("USB Serial Connection Task created successfully");
+  // }
+  // usbReady = true;
 
   // INIT TIMERS
-  startSeconds = getCurrentTime();
+  statusStartSeconds = getCurrentTime();
+  measureStartSeconds = getCurrentTime();
 
   // INIT QUEUE
   punchQueue = xQueueCreate(PUNCH_QUEUE_SIZE, sizeof(SIRecord));
 
+  // INIT PREFS
+  prefs.begin("config", false);
+
   // INIT STATUS
   initStatus();
+
+  // Intial delay for NB-IOT module
+  vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
 }
 
 // Receives punches till no punches are left or the buffer is full
@@ -325,66 +334,67 @@ void loop()
 
   if (currStatus.runStatus != RunStatus::INIT_ERROR)
   {
-    if (usbReady)
-    {
-      handle();
-      vTaskDelay(pdMS_TO_TICKS(10));
-    }
+    // if (usbReady)
+    // {
+    //   handle();
+    //   vTaskDelay(pdMS_TO_TICKS(10));
+    // }
 
-    if (Serial.available())
-    {
-      char c = Serial.read();
-      Serial.print("writing to serial1: ");
-      Serial.println(c);
-      Serial1.write(c);
-    }
+    // if (Serial.available())
+    // {
+    //   char c = Serial.read();
+    //   Serial.print("writing to serial1: ");
+    //   Serial.println(c);
+    //   Serial1.write(c);
+    // }
 
-    if (rs232_serial.available())
-    {
-      for (int i = 0; i < 100; i++)
-      {
-        test[i] = 0;
-      }
-      Serial.println("reading from rs232_serial: ");
-      int i = 1;
-      while (rs232_serial.available())
-      {
-        test[i] = rs232_serial.read();
-        i++;
-        delay(2);
-        // Serial.print(Serial1.read(), HEX);
-      }
-      // Serial.println("done reading from rs232_serial: ");
-      ESP_LOGI("rx_callback", "Received SI-Card data from r232 serial");
-      for (int i = 0; i < 100; i++)
-      {
-        Serial.print(test[i], HEX);
-        Serial.print(",");
-      }
-      si_parse(test, i);
-      network_led.indicate(255, 0, 0, StatusLED::SOLID, 0.5, 1000);
-      si_dumpdata();
-      si_clear_data();
-    }
+    // if (rs232_serial.available())
+    // {
+    //   for (int i = 0; i < 100; i++)
+    //   {
+    //     test[i] = 0;
+    //   }
+    //   Serial.println("reading from rs232_serial: ");
+    //   int i = 1;
+    //   while (rs232_serial.available())
+    //   {
+    //     test[i] = rs232_serial.read();
+    //     i++;
+    //     delay(2);
+    //     // Serial.print(Serial1.read(), HEX);
+    //   }
+    //   // Serial.println("done reading from rs232_serial: ");
+    //   ESP_LOGI("rx_callback", "Received SI-Card data from r232 serial");
+    //   for (int i = 0; i < 100; i++)
+    //   {
+    //     Serial.print(test[i], HEX);
+    //     Serial.print(",");
+    //   }
+    //   si_parse(test, i);
+    //   network_led.indicate(255, 0, 0, StatusLED::SOLID, 0.5, 1000);
+    //   si_dumpdata();
+    //   si_clear_data();
+    // }
 
-    // MAIN LOOP
     try
     {
-      // CONNECT
-      if (!currStatus.connected)
+      measureCurrSeconds = getCurrentTime();
+      if ((measureCurrSeconds - measureStartSeconds) > SYSTEM_STATS_MEASURE_DELAY)
       {
-        connectSocket(currStatus);
-        // TODO: add delay
+        currStatus.updateBatteryLevel();
+        getSignalStrength(currStatus);
       }
-      else
+      measureCurrSeconds = getCurrentTime();
+
+      // MAIN LOOP
+      switch (currStatus.socketStatus)
       {
-        // AUTH PHASE
-        if (!currStatus.authenticated)
+      case SocketStatus::SOCKET_AUTHENTICATED:
+      {
+        try
         {
-          authenticateDevice(currStatus);
-        }
-        else
-        {
+          status_led.setColorPreset(StatusLED::GREEN);
+
           // PUNCHES?
           if (punchesSent)
           {
@@ -395,40 +405,64 @@ void loop()
               punchesSent = sendPunches(currStatus, punches, received);
             }
           }
-
-          currSeconds = getCurrentTime();
-
           // STATUS?
-          if ((currSeconds - startSeconds) > config.statusDelay)
+          statusCurrSeconds = getCurrentTime();
+
+          if ((statusCurrSeconds - statusStartSeconds) > config.statusDelay)
           {
+            ESP_LOGI("STATUS", "Time period elapsed");
+
             // Update stats
             getSignalStrength(currStatus);
             currStatus.updateBatteryLevel();
 
-            sendStatus(currStatus);
-            startSeconds = getCurrentTime();
+            sendStatus(currStatus, prefs);
+            statusStartSeconds = getCurrentTime();
           }
         }
+
+        // Non-fatal errors
+        catch (const std::invalid_argument &ex)
+        {
+          // TODO: blink led or something
+          ESP_LOGE("INVALID_ARGUMENT", "Error: %s", ex.what());
+        }
+
+        // Connection error -> disconnect socket
+        catch (const SocketException &ex)
+        {
+          ESP_LOGE("SOCKET_EXCEPTION", "Error: %s", ex.what());
+
+          currStatus.runStatus = RunStatus::SOCKET_ERROR;
+          currStatus.socketStatus = SocketStatus::SOCKET_SIM_OK;
+          closeSocket(currStatus);
+
+          // TODO: set out the status LEDs
+          status_led.setColorPreset(StatusLED::ORANGE);
+        }
+      }
+      break;
+
+      case SocketStatus::SOCKET_CONNECTED:
+        authenticateDevice(currStatus);
+        break;
+
+      default:
+        connectSocket(currStatus);
       }
     }
-    // Connection error -> disconnect socket
-    catch (const SocketException &exception)
-    {
-      currStatus.connected = false;
-      currStatus.authenticated = false;
-      closeSocket(currStatus);
 
-      // TODO: set out the status LEDs
-      currStatus.runStatus = RunStatus::SOCKET_ERROR;
-    }
     // Serial write error - cable disconnected
-    catch (const SerialException &exception)
+    catch (const SerialException &ex)
     {
-      currStatus.connected = false;
-      currStatus.authenticated = false;
+      ESP_LOGE("SERIAL_EXCEPTION", "Error: %s", ex.what());
+
+      currStatus.runStatus = RunStatus::SERIAL_ERROR;
+      currStatus.socketStatus = SocketStatus::SOCKET_OFF;
 
       // TODO: signal out the error
-      currStatus.runStatus = RunStatus::SERIAL_ERROR;
+      status_led.setColorPreset(StatusLED::RED);
     }
   }
+  vTaskDelay(pdMS_TO_TICKS(3000));
 }

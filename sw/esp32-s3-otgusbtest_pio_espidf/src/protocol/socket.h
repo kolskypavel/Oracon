@@ -3,6 +3,10 @@ Implementation of the ORacon protocol
 */
 #pragma once
 
+#include <Preferences.h>
+#include <string>
+#include <vector>
+
 #include "protocol_message.h"
 #include "protocol_parser.h"
 #include "serial_commands.h"
@@ -10,8 +14,6 @@ Implementation of the ORacon protocol
 #include "crypto/encryptor.h"
 #include "exceptions.h"
 #include "defines.h"
-#include <string>
-#include <vector>
 
 // Writes the given raw data to serial
 void writeData(const std::string &data);
@@ -52,7 +54,7 @@ void authenticateDevice(DeviceStatus &status);
 void closeSocket(DeviceStatus &status);
 
 // Sends the current device status
-void sendStatus(DeviceStatus &status);
+void sendStatus(DeviceStatus &status, Preferences prefs);
 
 // Sends the punches to the server, returns true for OK, false if the punches did not send
 bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount);

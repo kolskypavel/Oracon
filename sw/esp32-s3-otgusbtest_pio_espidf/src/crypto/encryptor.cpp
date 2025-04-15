@@ -4,7 +4,7 @@ Examples: https://github.com/wolfSSL/wolfssl-examples/blob/master/ecc/
 Docs: https://www.wolfssl.com/documentation/manuals/wolfssl/ecc_8h.html
  */
 
-bool encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &outLength)
+void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &outLength)
 {
     int ret = 0;
     WC_RNG rng;
@@ -14,7 +14,7 @@ bool encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
 
     if (ret != 0)
     {
-        return false;
+        throw std::invalid_argument("ENCRYPT: Failed to init RNG");
     }
 
     byte outBuffer[MAX_MESSAGE_SIZE];
@@ -24,14 +24,14 @@ bool encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
     ret = wc_ecc_init(&ephemeralKey);
     if (ret != 0)
     {
-        return false;
+        throw std::invalid_argument("ENCRYPT: Failed to init ephemeral key");
     }
 
     // Make new 256b ephemeral key
     ret = wc_ecc_make_key(&rng, 32, &ephemeralKey);
     if (ret != 0)
     {
-        return false;
+        throw std::invalid_argument("ENCRYPT: Failed to make ephemeral key");
     }
 
     ret = wc_ecc_encrypt(&ephemeralKey, &pubKey, reinterpret_cast<const byte *>(data.data()), data.size(), outBuffer, &outLength, nullptr);
@@ -39,12 +39,12 @@ bool encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
     if (ret == 0)
     {
         // Success
-        return true;
+        return;
     }
-    return false;
+    throw std::invalid_argument("ENCRYPT: Failed to encrypt given data");
 }
 
-bool decryptData(const byte *data, word32 dataLength, ecc_key &privKey, std::string &out)
+void decryptData(const byte *data, word32 dataLength, ecc_key &privKey, std::string &out)
 {
 
     byte outBuffer[MAX_MESSAGE_SIZE];
@@ -55,12 +55,12 @@ bool decryptData(const byte *data, word32 dataLength, ecc_key &privKey, std::str
     if (ret == 0)
     {
         out = std::string(reinterpret_cast<char *>(outBuffer), outLength);
-        return true;
+        return;
     }
-    return false;
+    throw std::invalid_argument("DECRYPT: Failed to decrypt data");
 }
 
-bool generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 outLength)
+void generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 outLength)
 {
     int ret = 0;
     WC_RNG rng;
@@ -70,15 +70,15 @@ bool generateSignature(const std::string &data, const ecc_key &privKey, byte *si
 
     if (ret != 0)
     {
-        return false;
+        throw std::invalid_argument("SIGNATURE: Failed to init RNG");
     }
 
     ret = wc_SignatureGenerate(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, &outLength, &privKey, sizeof(privKey), &rng);
     if (ret != 0)
     {
-        return true;
+        return;
     }
-    return false;
+    throw std::invalid_argument("SIGNATURE: Failed to generate signature");
 }
 
 bool validateSignature(const byte *signature, word32 sigLength, const std::string &data, const ecc_key &pubKey)
@@ -108,7 +108,14 @@ ecc_key loadKey(const char *keyPem, bool isPrivate)
     }
 
     // Convert to DER
-    ret = wc_KeyPemToDer(reinterpret_cast<const unsigned char *>(keyPem), strlen(keyPem), derBuff, MAX_DER_BUFF_SIZE, nullptr);
+    if (isPrivate)
+    {
+        ret = wc_KeyPemToDer(reinterpret_cast<const unsigned char *>(keyPem), strlen(keyPem), derBuff, MAX_DER_BUFF_SIZE, nullptr);
+    }
+    else
+    {
+        ret = wc_PubKeyPemToDer(reinterpret_cast<const unsigned char *>(keyPem), strlen(keyPem), derBuff, MAX_DER_BUFF_SIZE);
+    }
 
     if (ret < 0)
     {

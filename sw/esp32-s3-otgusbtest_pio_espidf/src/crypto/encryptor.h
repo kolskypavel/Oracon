@@ -9,14 +9,15 @@
 #include <wolfssl/wolfcrypt/asn_public.h>
 #include "defines.h"
 
-bool encryptData(const std::string &data, ecc_key &key, byte *out, word32 &outLength);
+void encryptData(const std::string &data, ecc_key &key, byte *out, word32 &outLength);
 
-bool decryptData(const byte *data, word32 dataLength, ecc_key &key, std::string &out);
+void decryptData(const byte *data, word32 dataLength, ecc_key &key, std::string &out);
 
-bool generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 outLength);
+void generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 outLength);
 
 bool validateSignature(const byte *signature, word32 sigLength, const std::string &data, const ecc_key &key);
 
+//Loads given key in PEM format (MUST include ---BEGIN header)
 ecc_key loadKey(const char *keyPem, bool isPrivate);
 
 /*
@@ -25,5 +26,6 @@ ecc_key loadKey(const char *keyPem, bool isPrivate);
  *   #define HAVE_ECC_ENCRYPT
  *   #define HAVE_HKDF
  *   #define WOLFCRYPT_ONLY
+ *   #define WOLFSSL_PUB_PEM_TO_DER
  *   # logging function disabled
  */

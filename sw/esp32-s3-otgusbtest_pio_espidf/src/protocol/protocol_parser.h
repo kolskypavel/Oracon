@@ -20,6 +20,9 @@ bool startsWith(std::string text, std::string prefix);
 // Gets suffix after char c
 std::string getSuffix(std::string input, char c);
 
+//Parses the values from a command in a format COM:<X>,<Y>
+std::pair<int,int> getValuesFromAt(std::string command);
+
 /**
  * @brief Attempts to parse the given string to a protocol message
  * @throws std::illegal_argument if the string is not in the valid format

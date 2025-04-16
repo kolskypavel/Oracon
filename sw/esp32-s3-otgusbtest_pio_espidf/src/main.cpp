@@ -340,8 +340,11 @@ void setup()
 {
   // Init serial ports
   usb_serial.begin(115200);
-  rs232_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
-  nbiot_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
+  rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
+  nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
+
+  delay(10);
+  nbiot_serial.println();
 
   // INIT LEDS
   status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
@@ -375,10 +378,11 @@ void setup()
     // Failed to init
     currStatus.runStatus = RunStatus::INIT_ERROR;
     status_led.setColorPreset(StatusLED::RED);
+    ESP_LOGE("INIT", "Failed to init, cause: %s", ex.what());
   }
 
   // Intial delay for NB-IOT module
-  vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
+  // vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
 }
 
 // Receives punches till no punches are left or the buffer is full

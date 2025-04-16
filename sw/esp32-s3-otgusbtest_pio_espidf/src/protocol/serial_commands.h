@@ -16,7 +16,7 @@ const std::string COMMAND_CONNECT = "AT+CIPOPEN="; // Structure AT+CIPOPEN=<link
 const std::string COMMAND_SEND = "AT+CIPSEND="; // Structure  AT+CIPSEND=<link_num>
 const std::string COMMAND_CLOSE = "AT+NETCLOSE";
 
-const std::string COMMAND_RESPONSE_SIM_OK = "+CPIN:READY";
+const std::string COMMAND_RESPONSE_SIM_OK = "+CPIN: READY";
 const std::string COMMAND_RESPONSE_SERVICE = "+CGREG:";
 const std::string COMMAND_RESPONSE_SEND = ">";
 const std::string COMMAND_RESPONSE_INCOMMING_DATA = "+IPD:";

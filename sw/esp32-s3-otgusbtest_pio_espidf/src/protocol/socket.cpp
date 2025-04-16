@@ -2,12 +2,7 @@
 
 void writeData(const std::string &data)
 {
-    for (int i = 0; i <= data.size(); i++)
-    {
-        nbiot_serial.write(data[i]);
-    }
-    nbiot_serial.write('\r');
-    nbiot_serial.write('\n');
+    nbiot_serial.println(data.c_str());
     ESP_LOGI("SOCKET", "Wrote data: %s", data.c_str());
 }
 
@@ -22,6 +17,7 @@ std::string receiveRawData()
         {
             throw SocketException("Socket timeout expired");
         }
+        ESP_LOGI("SOCKET", "TIMEOUT %d", timeout);
         timeout++;
         delay(1000);
     }

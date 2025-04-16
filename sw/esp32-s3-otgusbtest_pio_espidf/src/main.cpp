@@ -249,8 +249,8 @@ void setup()
 {
   // Init serial ports
   usb_serial.begin(115200);
-  nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
-  rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
+  rs232_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
+  nbiot_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
 
   // INIT LEDS
   status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
@@ -304,6 +304,9 @@ void setup()
 
   // INIT STATUS
   initStatus();
+
+  // INIT SOCKET
+  initSocket(currStatus);
 
   // Intial delay for NB-IOT module
   vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
@@ -402,10 +405,6 @@ void loop()
         if ((statusCurrSeconds - statusStartSeconds) > config.statusDelay)
         {
           ESP_LOGI("STATUS", "Time period elapsed");
-
-          // Update stats
-          getSignalStrength(currStatus);
-          currStatus.updateBatteryLevel();
 
           sendStatus(currStatus, prefs);
           statusStartSeconds = getCurrentTime();

@@ -6,6 +6,8 @@ void writeData(const std::string &data)
     {
         nbiot_serial.write(data[i]);
     }
+    nbiot_serial.write('\r');
+    nbiot_serial.write('\n');
     ESP_LOGI("SOCKET", "Wrote data: %s", data.c_str());
 }
 
@@ -46,94 +48,57 @@ std::string receiveRawData()
     return out;
 }
 
+void initSocket(DeviceStatus &status)
+{
+    std::string resp;
+
+    // Check SIM
+    writeData(COMMAND_CHECK_SIM);
+    resp = receiveRawData();
+
+    if (startsWith(resp, COMMAND_RESPONSE_SIM_OK))
+    {
+        ESP_LOGI("CONNECT", "Socket init successful");
+        return;
+    }
+    throw std::runtime_error("SIM not connected");
+}
+
 void connectSocket(DeviceStatus &status)
 {
     std::string resp;
-    switch (status.socketStatus)
-    {
 
-    case SocketStatus::SOCKET_OFF:
-    {
-        // Check SIM
-        writeData(COMMAND_CHECK_SIM);
-        resp = receiveRawData();
-        ESP_LOGI("CONNECT", "Received %s", resp.c_str());
+    // Create socket
+    writeData(COMMAND_CREATE_SOCKET);
+    resp = receiveRawData();
 
-        if (!startsWith(resp, COMMAND_RESPONSE_SIM_OK))
-        {
-            ESP_LOGE("CONNECT", "SIM not connected");
-            return;
-        }
-        status.socketStatus = SocketStatus::SOCKET_SIM_OK;
-    }
-    case SocketStatus::SOCKET_SIM_OK:
+    if (!startsWith(resp, COMMAND_RESPONSE_OK))
     {
-        // Check signal status
-        getSignalStrength(status);
-
-        if (status.signal > MAX_SIGNAL_VALUE)
-        {
-            ESP_LOGE("CONNECT", "Signal is not strong enough");
-            return;
-        }
-        status.socketStatus = SocketStatus::SOCKET_SIGNAL_OK;
+        ESP_LOGE("CONNECT", "Failed to create socket");
+        return;
     }
 
-    case SocketStatus::SOCKET_SIGNAL_OK:
+    // TODO: Extract the socket ID - verify
+    int socketId = std::stoi(getSuffix(resp, ':'));
+
+    std::string connect = COMMAND_CONNECT;
+    connect += socketId;
+    connect += ",TCP,";
+    connect += SERVER_IP;
+    connect += "," + SERVER_PORT;
+
+    writeData(connect);
+    resp = receiveRawData();
+
+    if (resp == COMMAND_RESPONSE_OK)
     {
-
-        // Check service status
-        writeData(COMMAND_CHECK_SERVICE);
-        resp = receiveRawData();
-        if (!startsWith(resp, COMMAND_RESPONSE_SIM_OK))
-        {
-            ESP_LOGE("CONNECT", "Invalid response for service command");
-            return;
-        }
-
-        std::pair value = getValuesFromAt(resp);
-
-        if (value.second != 1 || value.second != 5)
-        {
-            ESP_LOGE("CONNECT", "Failed to register to service, code %d", value.second);
-            return;
-        }
-        status.socketStatus = SocketStatus::SOCKET_SERVICE_REGISTERED;
+        ESP_LOGI("CONNECT", "Sucessfully connected to socket");
+        status.socketStatus = SocketStatus::SOCKET_CONNECTED;
+        status.socketId = socketId;
+        return;
     }
-    case SocketStatus::SOCKET_SERVICE_REGISTERED:
-    {
-        // Create socket
-        writeData(COMMAND_CREATE_SOCKET);
-        resp = receiveRawData();
 
-        if (!startsWith(resp, COMMAND_RESPONSE_CREATED))
-        {
-            ESP_LOGE("CONNECT", "Failed to create socket");
-            return;
-        }
-
-        // TODO: Extract the socket ID - verify
-        int socketId = std::stoi(getSuffix(resp, ':'));
-
-        std::string connect = COMMAND_CONNECT;
-        connect += socketId;
-
-        writeData(connect);
-        resp = receiveRawData();
-
-        if (resp == COMMAND_RESPONSE_OK)
-        {
-            ESP_LOGI("CONNECT", "Sucessfully connected to socket");
-            status.socketStatus = SocketStatus::SOCKET_CONNECTED;
-            status.socketId = socketId;
-            return;
-        }
-
-        ESP_LOGE("CONNECT", "Failed to connected to a socket");
-    }
-    default:
-        break;
-    }
+    ESP_LOGE("CONNECT", "Failed to connected to a socket");
 }
 
 void sendData(const byte *data, int dataLen, int socketId)
@@ -141,10 +106,21 @@ void sendData(const byte *data, int dataLen, int socketId)
     std::string buffer;
     std::string hexData = dataToHex(data, dataLen);
     buffer += COMMAND_SEND;
-    buffer += socketId + "," + hexData.size();
-    buffer += "," + hexData;
+    buffer += socketId;
+    buffer += ",";
+    buffer += hexData.size();
 
+    //Send sending command
     writeData(buffer);
+    buffer = receiveRawData();
+
+    if (buffer != COMMAND_RESPONSE_SEND)
+    {
+        throw SocketException("Invalid response to send command:" + buffer);
+    }
+
+    //Send actual data
+    writeData(hexData);
 
     buffer = "";
     buffer = receiveRawData();
@@ -184,6 +160,7 @@ std::string getData(DeviceStatus &status)
     // Check if data doesn't exceed max message size
     if (startsWith(received, COMMAND_RESPONSE_INCOMMING_DATA) && received.size() <= (MAX_MESSAGE_SIZE + COMMAND_RESPONSE_INCOMMING_DATA.size()))
     {
+        //TODO: rewrite
         std::string trimmed = getSuffix(received, ':'); // Trim the message indicator
         byte rawData[MAX_MESSAGE_SIZE];
         hexToData(trimmed, rawData);
@@ -367,22 +344,38 @@ void getSignalStrength(DeviceStatus &status)
     writeData(COMMAND_CHECK_SIGNAL);
     std::string response = receiveRawData(); // Format +CSQ: <rssi>,<ber>
 
-    if (startsWith(response, COMMAND_RESPONSE_SIGNAL))
+    if (!startsWith(response, COMMAND_RESPONSE_SIGNAL))
     {
-        std::pair values = getValuesFromAt(response);
-        int rssi = values.first;
-
-        // NB-Iot signal not detectable
-        if (rssi == 99)
-        {
-            status.signal = 0;
-        }
-        // Convert RSSI to dBm using TS 27.007 Section 8.5
-        else if (rssi >= 0 && rssi <= 31)
-        {
-            status.signal = 113 - (rssi * 2); // dBm calculation
-            return;
-        }
+        throw SocketException("Invalid signal strength response");
     }
-    throw SocketException("Invalid signal strength response");
+
+    std::pair values = getValuesFromAt(response);
+    int rssi = values.first;
+
+    // NB-Iot signal not detectable
+    if (rssi == 99)
+    {
+        status.signal = 0;
+    }
+    // Convert RSSI to dBm using TS 27.007 Section 8.5
+    else if (rssi >= 0 && rssi <= 31)
+    {
+        status.signal = 113 - (rssi * 2); // dBm calculation
+        return;
+    }
+
+    // Check service status
+    writeData(COMMAND_CHECK_SERVICE);
+    response = receiveRawData();
+    if (!startsWith(response, COMMAND_RESPONSE_SIM_OK))
+    {
+        throw SocketException("Invalid response for service command");
+    }
+
+    std::pair value = getValuesFromAt(response);
+
+    if (value.second != 1 || value.second != 5)
+    {
+        throw SocketException("Failed to register to service, code" + value.second);
+    }
 }

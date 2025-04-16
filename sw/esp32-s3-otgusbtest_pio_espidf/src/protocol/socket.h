@@ -14,6 +14,7 @@ Implementation of the ORacon protocol
 #include "crypto/encryptor.h"
 #include "exceptions.h"
 #include "defines.h"
+#include "secrets.h"
 
 // Writes the given raw data to serial
 void writeData(const std::string &data);
@@ -43,6 +44,8 @@ void initMessage(ProtocolMessage &msg, DeviceStatus &status);
 void sendAck(DeviceStatus &status);
 
 void sendNack(DeviceStatus &status);
+
+void initSocket(DeviceStatus &status);
 
 // Connects socket to a server and updates the status
 void connectSocket(DeviceStatus &status);

@@ -33,21 +33,35 @@ bool startsWith(std::string text, std::string prefix)
     return false;
 }
 
-std::string getSuffix(std::string input, char c)
+std::string getSuffix(std::string input, std::string str)
 {
-    if (input.find(c) != std::string::npos)
+    size_t pos = input.find(str);
+    if (pos != std::string::npos)
     {
-        return input.substr(input.find(c) + 1);
+        return input.substr(pos + str.length());
     }
     else
     {
-        throw std::invalid_argument("Character not found in input string");
+        throw std::invalid_argument("Substring not found in input string");
+    }
+}
+
+std::string getPrefix(std::string input, std::string str)
+{
+    size_t pos = input.find(str);
+    if (pos != std::string::npos)
+    {
+        return input.substr(pos + str.length());
+    }
+    else
+    {
+        throw std::invalid_argument("Substring not found in input string");
     }
 }
 
 std::pair<int, int> getValuesFromAt(std::string command)
 {
-    std::string trimmed = getSuffix(command, ':');
+    std::string trimmed = getSuffix(command, ":");
     size_t commaPos = trimmed.find(',');
     if (commaPos != std::string::npos)
     {
@@ -238,7 +252,7 @@ DeviceConfig stringToConfig(const std::string &data)
 std::string generateSignatureData(const DeviceStatus &status)
 {
     std::string sigData = std::to_string(status.deviceId);
-    byte out[100]; // TODO: modify
+    byte out[MAX_SIGNATURE_SIZE];
     word32 outLen = 0;
 
     generateSignature(sigData, status.key, out, outLen);

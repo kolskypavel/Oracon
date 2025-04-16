@@ -32,7 +32,6 @@ bool isConnected = false;
 bool usbReady = false;
 TaskHandle_t xHandle;
 
-uint8_t test[100];
 StatusLED status_led, network_led;
 QueueHandle_t punchQueue;
 
@@ -213,50 +212,71 @@ void handle()
   }
 }
 
-void initStatus()
+static void rs232_serial_task(void *pvParameter)
 {
-  currStatus.socketStatus = SocketStatus::SOCKET_OFF;
-  currStatus.punchesReceived = 0;
+  uint8_t buffer[MAX_SI_DATA_SIZE];
+  boolean finished = true;
 
-  // If config values are stored in memory, use them, otherwise use the preset
-  if (prefs.isKey("statusDelay"))
+  while (true)
   {
-    currStatus.config.statusDelay = prefs.getUChar("statusDelay");
-  }
-  else
-  {
-    currStatus.config.statusDelay = INIT_STATUS_DELAY;
-  }
+    finished = true;
+    // Clear buffer
+    for (int c = 0; c < MAX_SI_DATA_SIZE; c++)
+    {
+      buffer[c] = 0;
+    }
 
-  try
-  {
-    currStatus.serverIp = SERVER_IP;
-    currStatus.serverPort = SERVER_PORT;
-    currStatus.key = loadKey(DEVICE_PRIVATE_KEY, true);
-    currStatus.serverKey = loadKey(SERVER_PUBLIC_KEY, false);
+    if (rs232_serial.available())
+    {
+      int i = 0;
+      while (rs232_serial.available())
+      {
+        // Prevent buffer overflow
+        if (i >= MAX_SI_DATA_SIZE)
+        {
+          finished = false;
+          break;
+        }
+
+        buffer[i] = rs232_serial.read();
+        i++;
+        delay(2);
+      }
+      if (finished)
+      {
+        ESP_LOGI("RS232", "Received SI-Card data from r232 serial");
+        SIRecord record = parseSIdata(buffer, i);
+
+        if (xQueueSend(punchQueue, &record, 0) != pdPASS)
+        {
+          ESP_LOGE("RS232", "Queue is full");
+          // TODO: signal
+        }
+      }
+    }
   }
-  catch (const std::runtime_error &error)
-  {
-    // Failed to init keys
-    currStatus.runStatus = RunStatus::INIT_ERROR;
-    status_led.setColorPreset(StatusLED::RED);
-    return;
-  }
-  ESP_LOGI("INIT", "Status init successful");
 }
 
-void setup()
+void initTasks()
 {
-  // Init serial ports
-  usb_serial.begin(115200);
-  rs232_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
-  nbiot_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
+  BaseType_t res = xTaskCreate(
+      rs232_serial_task, "rs232_serial_task",
+      ESP_USB_SERIAL_TASK_SIZE, nullptr, ESP_USB_SERIAL_TASK_PRIORITY, nullptr);
 
-  // INIT LEDS
-  status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
-  network_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
-  status_led.setEnabled(true);
-  network_led.setEnabled(true);
+  if (res != pdPASS)
+  {
+    throw std::runtime_error("Failed to init RS232 task");
+  }
+
+  //  res = xTaskCreatePinnedToCore(
+  //   esp_usb_serial_connection_task, "esp_usb_serial_task",
+  //   ESP_USB_SERIAL_TASK_SIZE, NULL, ESP_USB_SERIAL_TASK_PRIORITY, &xHandle,
+  //   ESP_USB_SERIAL_TASK_CORE);
+
+  //   if (res != pdPASS || !xHandle)
+  //   {
+  //     throw std::runtime_error("Failed to init USB task");
+  //   }
 
   // if (ESP_OK != usb_serial_init())
   // {
@@ -291,6 +311,43 @@ void setup()
   //   Serial.println("USB Serial Connection Task created successfully");
   // }
   // usbReady = true;
+}
+
+void initStatus()
+{
+  currStatus.socketStatus = SocketStatus::SOCKET_OFF;
+  currStatus.punchesReceived = 0;
+
+  // If config values are stored in memory, use them, otherwise use the preset
+  if (prefs.isKey("statusDelay"))
+  {
+    currStatus.config.statusDelay = prefs.getUChar("statusDelay");
+  }
+  else
+  {
+    currStatus.config.statusDelay = INIT_STATUS_DELAY;
+  }
+
+  currStatus.serverIp = SERVER_IP;
+  currStatus.serverPort = SERVER_PORT;
+  currStatus.key = loadKey(DEVICE_PRIVATE_KEY, true);
+  currStatus.serverKey = loadKey(SERVER_PUBLIC_KEY, false);
+
+  ESP_LOGI("INIT", "Status init successful");
+}
+
+void setup()
+{
+  // Init serial ports
+  usb_serial.begin(115200);
+  rs232_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
+  nbiot_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
+
+  // INIT LEDS
+  status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
+  network_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
+  status_led.setEnabled(true);
+  network_led.setEnabled(true);
 
   // INIT TIMERS
   statusStartSeconds = getCurrentTime();
@@ -302,11 +359,23 @@ void setup()
   // INIT PREFS
   prefs.begin("config", false);
 
-  // INIT STATUS
-  initStatus();
+  try
+  {
+    // INIT STATUS
+    initStatus();
 
-  // INIT SOCKET
-  initSocket(currStatus);
+    // INIT SOCKET
+    initSocket(currStatus);
+
+    // INIT TASKS
+    initTasks();
+  }
+  catch (const std::runtime_error &ex)
+  {
+    // Failed to init
+    currStatus.runStatus = RunStatus::INIT_ERROR;
+    status_led.setColorPreset(StatusLED::RED);
+  }
 
   // Intial delay for NB-IOT module
   vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
@@ -336,41 +405,6 @@ void loop()
     //   vTaskDelay(pdMS_TO_TICKS(10));
     // }
 
-    // if (Serial.available())
-    // {
-    //   char c = Serial.read();
-    //   Serial.print("writing to serial1: ");
-    //   Serial.println(c);
-    //   Serial1.write(c);
-    // }
-
-    // if (rs232_serial.available())
-    // {
-    //   for (int i = 0; i < 100; i++)
-    //   {
-    //     test[i] = 0;
-    //   }
-    //   Serial.println("reading from rs232_serial: ");
-    //   int i = 1;
-    //   while (rs232_serial.available())
-    //   {
-    //     test[i] = rs232_serial.read();
-    //     i++;
-    //     delay(2);
-    //     // Serial.print(Serial1.read(), HEX);
-    //   }
-    //   // Serial.println("done reading from rs232_serial: ");
-    //   ESP_LOGI("rx_callback", "Received SI-Card data from r232 serial");
-    //   for (int i = 0; i < 100; i++)
-    //   {
-    //     Serial.print(test[i], HEX);
-    //     Serial.print(",");
-    //   }
-    //   si_parse(test, i);
-    //   network_led.indicate(255, 0, 0, StatusLED::SOLID, 0.5, 1000);
-    //   si_dumpdata();
-    //   si_clear_data();
-    // }
     try
     {
       measureCurrSeconds = getCurrentTime();

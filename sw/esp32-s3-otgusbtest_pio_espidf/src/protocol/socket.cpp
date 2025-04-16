@@ -56,12 +56,20 @@ void initSocket(DeviceStatus &status)
     writeData(COMMAND_CHECK_SIM);
     resp = receiveRawData();
 
-    if (startsWith(resp, COMMAND_RESPONSE_SIM_OK))
+    if (!startsWith(resp, COMMAND_RESPONSE_SIM_OK))
     {
-        ESP_LOGI("CONNECT", "Socket init successful");
-        return;
+        throw std::runtime_error("SIM not connected");
     }
-    throw std::runtime_error("SIM not connected");
+
+    // Disable ip output when receiving data
+    writeData(COMMAND_DISABLE_IP_OUTPUT);
+    resp = receiveRawData();
+
+    if (!startsWith(resp, COMMAND_RESPONSE_OK))
+    {
+        throw std::runtime_error("Failed to disable IP output");
+    }
+    ESP_LOGI("CONNECT", "Socket init successful");
 }
 
 void connectSocket(DeviceStatus &status)
@@ -79,7 +87,7 @@ void connectSocket(DeviceStatus &status)
     }
 
     // TODO: Extract the socket ID - verify
-    int socketId = std::stoi(getSuffix(resp, ':'));
+    int socketId = std::stoi(getSuffix(resp, ":"));
 
     std::string connect = COMMAND_CONNECT;
     connect += socketId;
@@ -110,7 +118,7 @@ void sendData(const byte *data, int dataLen, int socketId)
     buffer += ",";
     buffer += hexData.size();
 
-    //Send sending command
+    // Send sending command
     writeData(buffer);
     buffer = receiveRawData();
 
@@ -119,7 +127,7 @@ void sendData(const byte *data, int dataLen, int socketId)
         throw SocketException("Invalid response to send command:" + buffer);
     }
 
-    //Send actual data
+    // Send actual data
     writeData(hexData);
 
     buffer = "";
@@ -160,8 +168,11 @@ std::string getData(DeviceStatus &status)
     // Check if data doesn't exceed max message size
     if (startsWith(received, COMMAND_RESPONSE_INCOMMING_DATA) && received.size() <= (MAX_MESSAGE_SIZE + COMMAND_RESPONSE_INCOMMING_DATA.size()))
     {
-        //TODO: rewrite
-        std::string trimmed = getSuffix(received, ':'); // Trim the message indicator
+        std::string trimmed = getSuffix(received, "\r\n"); // Trim the message indicator
+        // uint16_t dataSize = 0;
+        // std::string sizeString = getPrefix(trimmed, "\r");
+        // trimmed = getSuffix(trimmed, "\r\n");
+
         byte rawData[MAX_MESSAGE_SIZE];
         hexToData(trimmed, rawData);
         std::string out;
@@ -361,7 +372,6 @@ void getSignalStrength(DeviceStatus &status)
     else if (rssi >= 0 && rssi <= 31)
     {
         status.signal = 113 - (rssi * 2); // dBm calculation
-        return;
     }
 
     // Check service status

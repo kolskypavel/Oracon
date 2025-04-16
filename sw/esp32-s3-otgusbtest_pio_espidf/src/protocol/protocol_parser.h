@@ -17,11 +17,13 @@ void hexToData(std::string in, byte *out);
 // Checks if text starts with given prefix
 bool startsWith(std::string text, std::string prefix);
 
-// Gets suffix after char c
-std::string getSuffix(std::string input, char c);
+// Gets suffix after string str
+std::string getSuffix(std::string input, std::string str);
 
-//Parses the values from a command in a format COM:<X>,<Y>
-std::pair<int,int> getValuesFromAt(std::string command);
+std::string getPrefix(std::string input,std::string str);
+
+// Parses the values from a command in a format COM:<X>,<Y>
+std::pair<int, int> getValuesFromAt(std::string command);
 
 /**
  * @brief Attempts to parse the given string to a protocol message
@@ -40,7 +42,7 @@ std::string messageTypeToString(ProtocolMessageType type);
 // Deserialize string to message type
 ProtocolMessageType stringToMessageType(const std::string &typeString);
 
-//Generates signature data from status object
+// Generates signature data from status object
 std::string generateSignatureData(const DeviceStatus &status);
 
 // Serializes status object to OraCon format

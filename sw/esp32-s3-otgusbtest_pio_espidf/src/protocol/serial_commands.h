@@ -1,6 +1,6 @@
 /*
 Commands used to communicate with NB-IOT module
-Reference: https://www.waveshare.com/w/upload/c/c2/SIM7020_Series_TCPIP_Application_Note_V1.02.pdf
+Reference: https://files.waveshare.com/wiki/SIM7028-NB-IoT-HAT/SIM7028%20Series_TCPIP_Application%20Note_V1.04.pdf
 */
 
 #include <string>

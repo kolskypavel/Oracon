@@ -2,30 +2,47 @@
 
 void writeData(const std::string &data)
 {
-    if (nbiot_serial.available())
+    for (int i = 0; i <= data.size(); i++)
     {
-        for (int i = 0; i <= data.size(); i++)
-        {
-            nbiot_serial.write(data[i]);
-        }
-        return;
+        nbiot_serial.write(data[i]);
     }
-    throw SerialException("Can't write to serial port");
+    ESP_LOGI("SOCKET", "Wrote data: %s", data.c_str());
 }
 
 std::string receiveRawData()
 {
-    int i = 0;
+    int i, timeout = 0;
     std::string out;
 
-    while (nbiot_serial.available() && i <= MAX_MESSAGE_SIZE)
+    while (nbiot_serial.available() == 0)
     {
+        if (timeout >= SOCKET_TIMEOUT)
+        {
+            throw SocketException("Socket timeout expired");
+        }
+        timeout++;
+        delay(1000);
+    }
+
+    while (nbiot_serial.available())
+    {
+        // if (i >= MAX_MESSAGE_SIZE)
+        // {
+        //     // Clear incoming buffer
+        //     while (Serial.available())
+        //     {
+        //         Serial.read();
+        //     }
+
+        //     throw std::invalid_argument("Message length exceeded maximal size");
+        // }
+
         char c = nbiot_serial.read();
         out += c;
         i++;
-        delay(2);
     }
 
+    ESP_LOGI("DATA", "Received: %s", out.c_str());
     return out;
 }
 

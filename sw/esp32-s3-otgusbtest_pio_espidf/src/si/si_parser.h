@@ -9,23 +9,38 @@
 /*********************
  *      DEFINES
  *********************/
+#define BYTE_STX 0x02
+#define BYTE_PUNCH_DATA 0xD3
+#define BYTE_ETX 0x03
 
 /**********************
  *      TYPEDEFS
  **********************/
-struct SIRecord {
-    uint8_t order;
-    uint8_t cardNumber;
-    uint8_t stationNumber;
-    std::string time;
-  };
+struct SIRecord
+{
+  uint32_t order;
+  uint32_t cardNumber;
+  uint16_t stationNumber;
+  std::string time;
+};
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
-void si_parse(const uint8_t *data, size_t data_len);
-void si_clear_data();
-void si_load_dummy_data();
-void si_dumpdata();
+SIRecord parseSIdata(const uint8_t *data, size_t data_len);
+
+// Returns an example SI record for testing purposes
+SIRecord getTestSIRecord();
+
+// Logs raw data to serial
+void dumpSiData(uint16_t si_stationnumber,
+                uint32_t si_cardnumber,
+                uint8_t si_weeknumrelative,
+                uint8_t si_weekday,
+                uint8_t si_fullday,
+                uint16_t si_h12timer);
+
+// Logs record data to serial
+void dumpSIRecord(const SIRecord &record);
 
 /**********************+
  *      MACROS

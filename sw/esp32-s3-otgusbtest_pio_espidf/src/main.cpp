@@ -68,12 +68,11 @@ bool rx_callback(const uint8_t *data, size_t data_len, void *arg)
   }
   Serial.println();
 
-  if (data[1] == 0x02 && data[2] == 0xD3 && data[19] == 0x03)
-  {                                                                   // check STX, 0xD3 & ETX
+  // Check if received data matches SI data
+  if (data[1] == BYTE_STX && data[2] == BYTE_PUNCH_DATA && data[19] == BYTE_ETX)
+  {
     ESP_LOGI("rx_callback", "Received SI-Card data from USB serial"); // TODO: verify checksum
-    si_parse(data, data_len);
-    si_dumpdata();
-    si_clear_data();
+    parseSIdata(data, data_len);
   }
   else
   {
@@ -214,12 +213,6 @@ void handle()
   }
 }
 
-// Gets the current counter value
-int getCurrentTime()
-{
-  return millis() / 1000;
-}
-
 void initStatus()
 {
   currStatus.socketStatus = SocketStatus::SOCKET_OFF;
@@ -260,10 +253,10 @@ void setup()
   rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
 
   // INIT LEDS
-  // status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
-  // network_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
-  // status_led.setEnabled(true);
-  // network_led.setEnabled(true);
+  status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
+  network_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
+  status_led.setEnabled(true);
+  network_led.setEnabled(true);
 
   // if (ESP_OK != usb_serial_init())
   // {
@@ -375,7 +368,6 @@ void loop()
     //   si_dumpdata();
     //   si_clear_data();
     // }
-
     try
     {
       measureCurrSeconds = getCurrentTime();
@@ -391,56 +383,35 @@ void loop()
       {
       case SocketStatus::SOCKET_AUTHENTICATED:
       {
-        try
+
+        status_led.setColorPreset(StatusLED::GREEN);
+
+        // PUNCHES?
+        if (punchesSent)
         {
-          status_led.setColorPreset(StatusLED::GREEN);
-
-          // PUNCHES?
-          if (punchesSent)
+          receivePunches();
+          if (received > 0)
           {
-            receivePunches();
-            if (received > 0)
-            {
-              punchesSent = false; // In case exception gets thrown, so the records don't get lost
-              punchesSent = sendPunches(currStatus, punches, received);
-            }
-          }
-          // STATUS?
-          statusCurrSeconds = getCurrentTime();
-
-          if ((statusCurrSeconds - statusStartSeconds) > config.statusDelay)
-          {
-            ESP_LOGI("STATUS", "Time period elapsed");
-
-            // Update stats
-            getSignalStrength(currStatus);
-            currStatus.updateBatteryLevel();
-
-            sendStatus(currStatus, prefs);
-            statusStartSeconds = getCurrentTime();
+            punchesSent = false; // In case exception gets thrown, so the records don't get lost
+            punchesSent = sendPunches(currStatus, punches, received);
           }
         }
+        // STATUS?
+        statusCurrSeconds = getCurrentTime();
 
-        // Non-fatal errors
-        catch (const std::invalid_argument &ex)
+        if ((statusCurrSeconds - statusStartSeconds) > config.statusDelay)
         {
-          // TODO: blink led or something
-          ESP_LOGE("INVALID_ARGUMENT", "Error: %s", ex.what());
-        }
+          ESP_LOGI("STATUS", "Time period elapsed");
 
-        // Connection error -> disconnect socket
-        catch (const SocketException &ex)
-        {
-          ESP_LOGE("SOCKET_EXCEPTION", "Error: %s", ex.what());
+          // Update stats
+          getSignalStrength(currStatus);
+          currStatus.updateBatteryLevel();
 
-          currStatus.runStatus = RunStatus::SOCKET_ERROR;
-          currStatus.socketStatus = SocketStatus::SOCKET_SIM_OK;
-          closeSocket(currStatus);
-
-          // TODO: set out the status LEDs
-          status_led.setColorPreset(StatusLED::ORANGE);
+          sendStatus(currStatus, prefs);
+          statusStartSeconds = getCurrentTime();
         }
       }
+
       break;
 
       case SocketStatus::SOCKET_CONNECTED:
@@ -449,19 +420,32 @@ void loop()
 
       default:
         connectSocket(currStatus);
+        break;
       }
     }
-
-    // Serial write error - cable disconnected
-    catch (const SerialException &ex)
+    // Non-fatal errors
+    catch (const std::invalid_argument &ex)
     {
-      ESP_LOGE("SERIAL_EXCEPTION", "Error: %s", ex.what());
+      // TODO: blink led or something
+      ESP_LOGE("INVALID_ARGUMENT", "Error: %s", ex.what());
+    }
 
-      currStatus.runStatus = RunStatus::SERIAL_ERROR;
+    // Connection error -> disconnect socket
+    catch (const SocketException &ex)
+    {
+      ESP_LOGE("SOCKET_EXCEPTION", "Error: %s", ex.what());
+
+      currStatus.runStatus = RunStatus::SOCKET_ERROR;
       currStatus.socketStatus = SocketStatus::SOCKET_OFF;
 
-      // TODO: signal out the error
-      status_led.setColorPreset(StatusLED::RED);
+      if (currStatus.socketStatus == SocketStatus::SOCKET_AUTHENTICATED ||
+          currStatus.socketStatus == SocketStatus::SOCKET_CONNECTED ||
+          currStatus.socketStatus == SocketStatus::SOCKET_CREATED)
+      {
+        closeSocket(currStatus);
+      }
+      // TODO: set out the status LEDs
+      status_led.setColorPreset(StatusLED::ORANGE);
     }
   }
   vTaskDelay(pdMS_TO_TICKS(3000));

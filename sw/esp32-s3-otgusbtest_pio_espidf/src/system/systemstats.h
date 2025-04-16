@@ -1,5 +1,6 @@
 #pragma once
 
+#include <esp_timer.h> 
 #include <stdint.h>
 #include <string>
 #include <wolfssl/wolfcrypt/ecc.h>
@@ -59,3 +60,5 @@ public:
     // Get the current battery level - read from voltage
     void updateBatteryLevel();
 };
+
+long getCurrentTime();

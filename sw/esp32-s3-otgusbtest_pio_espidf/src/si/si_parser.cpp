@@ -1,16 +1,16 @@
 #include "si_parser.h"
 
-const static char *TAG = "si_parser";
+const static char *TAG = "SI PARSER";
 
-uint16_t si_stationnumber = 0;
-uint32_t si_cardnumber = 0;
-uint8_t si_weeknumrelative = 0;
-uint8_t si_weekday = 0;
-uint8_t si_fullday = 0;
-uint16_t si_h12timer = 0;
-
-void si_parse(const uint8_t *data, size_t data_len)
+SIRecord parseSIdata(const uint8_t *data, size_t data_len)
 {
+  uint16_t si_stationnumber = 0;
+  uint32_t si_cardnumber = 0;
+  uint8_t si_weeknumrelative = 0;
+  uint8_t si_weekday = 0;   // 0=sunday, 1=monday, 2=tuesday, 3=wednesday, 4=thursday, 5=friday, 6=saturday
+  uint8_t si_fullday = 0;   // 0=am, 1=pm
+  uint16_t si_h12timer = 0; // 12h timer in seconds
+
   // SIdoc CN1, CN0 2 bytes stations code number 1...999
   si_stationnumber = data[4] << 8 | data[5];
 
@@ -30,42 +30,33 @@ void si_parse(const uint8_t *data, size_t data_len)
 
   // TSS 1 byte sub second values 1/256 sec
   // unused
-  //si_subsec = data[13];
+  // si_subsec = data[13];
+
+  SIRecord record;
+  record.cardNumber = si_cardnumber;
+  record.stationNumber = si_stationnumber;
+  char time_buffer[9];
+  snprintf(time_buffer, sizeof(time_buffer), "%02d:%02d:%02d",
+           (si_h12timer / 3600) + (si_fullday ? 12 : 0),
+           (si_h12timer % 3600) / 60,
+           si_h12timer % 60);
+  record.time = std::string(time_buffer);
+
+  return record;
 }
 
-void si_clear_data(){
-  si_stationnumber = 0;
-  si_cardnumber = 0;
-  si_weeknumrelative = 0;
-  si_weekday = 0;
-  si_fullday = 0;
-  si_h12timer = 0;
-  //si_subsec = 0;
+SIRecord getTestSIRecord()
+{
+  SIRecord record = {0, 123456, 111, "12:22:20"};
+  return record;
 }
 
-void si_load_dummy_data(){
-  si_stationnumber = 500;
-  si_cardnumber = 2075683;
-  si_weeknumrelative = 0;
-  si_weekday = 1; //0=sunday, 1=monday, 2=tuesday, 3=wednesday, 4=thursday, 5=friday, 6=saturday
-  si_fullday = 1; // 0=am, 1=pm
-  si_h12timer = 42267; // 12h timer in seconds
-  //si_subsec = 0;
-}
-
-std::string si_jsonify(){
-  std::string json = "{";
-  json += "\"station_number\":" + std::to_string(si_stationnumber) + ",";
-  json += "\"card_number\":" + std::to_string(si_cardnumber) + ",";
-  json += "\"week_number_relative\":" + std::to_string(si_weeknumrelative) + ",";
-  json += "\"week_day\":" + std::to_string(si_weekday) + ",";
-  json += "\"24h_time\":\"" + std::to_string((si_h12timer / 3600) + (si_fullday ? 12 : 0)) + ":" + std::to_string((si_h12timer % 3600) / 60) + ":" + std::to_string(si_h12timer % 60) + "\",";
-  //json += "\"subsec\":" + std::to_string(si_subsec);
-  json += "}";
-  return json;
-}
-
-void si_dumpdata()
+void dumpSiData(uint16_t si_stationnumber,
+                uint32_t si_cardnumber,
+                uint8_t si_weeknumrelative,
+                uint8_t si_weekday,
+                uint8_t si_fullday,
+                uint16_t si_h12timer)
 {
 
   std::string day_name = "";

@@ -24,15 +24,17 @@ void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
     ret = wc_ecc_init(&ephemeralKey);
     if (ret != 0)
     {
-        throw std::invalid_argument("ENCRYPT: Failed to init ephemeral key");
+        throw std::invalid_argument("ENCRYPT: Failed to init ephemeral key, ret code: " + std::to_string(ret));
     }
 
     // Make new 256b ephemeral key
     ret = wc_ecc_make_key(&rng, 32, &ephemeralKey);
     if (ret != 0)
     {
-        throw std::invalid_argument("ENCRYPT: Failed to make ephemeral key");
+        throw std::invalid_argument("ENCRYPT: Failed to make ephemeral key, ret code: " + std::to_string(ret));
     }
+
+    //TODO: Padding
 
     ret = wc_ecc_encrypt(&ephemeralKey, &pubKey, reinterpret_cast<const byte *>(data.data()), data.size(), outBuffer, &outLength, nullptr);
 
@@ -41,7 +43,7 @@ void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
         // Success
         return;
     }
-    throw std::invalid_argument("ENCRYPT: Failed to encrypt given data");
+    throw std::invalid_argument("ENCRYPT: Failed to encrypt given data, ret code: " + std::to_string(ret));
 }
 
 void decryptData(const byte *data, word32 dataLength, ecc_key &privKey, std::string &out)
@@ -57,10 +59,10 @@ void decryptData(const byte *data, word32 dataLength, ecc_key &privKey, std::str
         out = std::string(reinterpret_cast<char *>(outBuffer), outLength);
         return;
     }
-    throw std::invalid_argument("DECRYPT: Failed to decrypt data");
+    throw std::invalid_argument("DECRYPT: Failed to decrypt data, ret code: " + std::to_string(ret));
 }
 
-void generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 outLength)
+void generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 & outLength)
 {
     int ret = 0;
     WC_RNG rng;
@@ -70,18 +72,18 @@ void generateSignature(const std::string &data, const ecc_key &privKey, byte *si
 
     if (ret != 0)
     {
-        throw std::invalid_argument("SIGNATURE: Failed to init RNG");
+        throw std::invalid_argument("SIGNATURE: Failed to init RNG, ret code: " + std::to_string(ret));
     }
 
     ret = wc_SignatureGenerate(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, &outLength, &privKey, sizeof(privKey), &rng);
-    if (ret != 0)
+    if (ret == 0)
     {
         return;
     }
-    throw std::invalid_argument("SIGNATURE: Failed to generate signature");
+    throw std::invalid_argument("SIGNATURE: Failed to generate signature ret code: " + std::to_string(ret));
 }
 
-bool validateSignature(const byte *signature, word32 sigLength, const std::string &data, const ecc_key &pubKey)
+bool verifySignature(const byte *signature, word32 sigLength, const std::string &data, const ecc_key &pubKey)
 {
     int ret = wc_SignatureVerify(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, sigLength, &pubKey, sizeof(pubKey));
 
@@ -119,7 +121,7 @@ ecc_key loadKey(const char *keyPem, bool isPrivate)
 
     if (ret < 0)
     {
-        throw std::runtime_error("Failed to convert PEM key to DER");
+        throw std::runtime_error("Failed to convert PEM key to DER, ret code: " + std::to_string(ret));
     }
 
     if (isPrivate)
@@ -128,7 +130,7 @@ ecc_key loadKey(const char *keyPem, bool isPrivate)
         ret = wc_EccPrivateKeyDecode(derBuff, &idx, &key, ret);
         if (ret != 0)
         {
-            throw std::runtime_error("Failed to decode private key from DER");
+            throw std::runtime_error("Failed to decode private key from DER, ret code: " + std::to_string(ret));
         }
     }
     else
@@ -136,7 +138,7 @@ ecc_key loadKey(const char *keyPem, bool isPrivate)
         ret = wc_EccPublicKeyDecode(derBuff, &idx, &key, ret);
         if (ret != 0)
         {
-            throw std::runtime_error("Failed to decode public key from DER");
+            throw std::runtime_error("Failed to decode public key from DER, ret code: " + std::to_string(ret));
         }
     }
     return key;

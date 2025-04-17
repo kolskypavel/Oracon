@@ -260,7 +260,7 @@ std::string generateSignatureData(const DeviceStatus &status)
 {
     std::string sigData = std::to_string(status.deviceId);
     byte out[MAX_SIGNATURE_SIZE];
-    word32 outLen = 0;
+    word32 outLen = MAX_SIGNATURE_SIZE;
 
     generateSignature(sigData, status.key, out, outLen);
     JsonDocument doc;

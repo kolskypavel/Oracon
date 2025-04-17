@@ -23,8 +23,11 @@
 #include "protocol/socket.h"
 #include "protocol/exceptions.h"
 
+#include "crypto/test_crypto.h"
+
 // DO NOT INCLUDE in VCS
 #include "secrets.h"
+#include <wolfssl/wolfcrypt/logging.h>
 
 SemaphoreHandle_t device_disconnected_sem;
 std::unique_ptr<CdcAcmDevice> vcp;
@@ -47,7 +50,6 @@ int received = 0;
 
 // STATUS
 DeviceStatus currStatus;
-DeviceConfig config;
 ProtocolMessage message;
 
 Preferences prefs;
@@ -328,6 +330,7 @@ void initStatus()
     currStatus.config.statusDelay = INIT_STATUS_DELAY;
   }
 
+  currStatus.deviceId = DEVICE_ID;
   currStatus.key = loadKey(DEVICE_PRIVATE_KEY, true);
   currStatus.serverKey = loadKey(SERVER_PUBLIC_KEY, false);
 
@@ -379,6 +382,9 @@ void setup()
     ESP_LOGE("INIT", "Failed to init, cause: %s", ex.what());
   }
 
+  // runCryptoTest(currStatus);
+  wolfSSL_Debugging_ON();
+
   // Intial delay for NB-IOT module
   // vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
 }
@@ -394,6 +400,12 @@ void receivePunches()
   received = count;
 }
 
+// if (usbReady)
+// {
+//   handle();
+//   vTaskDelay(pdMS_TO_TICKS(10));
+// }
+
 void loop()
 {
   status_led.show();
@@ -401,12 +413,6 @@ void loop()
 
   if (currStatus.runStatus != RunStatus::INIT_ERROR)
   {
-    // if (usbReady)
-    // {
-    //   handle();
-    //   vTaskDelay(pdMS_TO_TICKS(10));
-    // }
-
     try
     {
       measureCurrSeconds = getCurrentTime();
@@ -415,9 +421,11 @@ void loop()
         currStatus.updateBatteryLevel();
         getSignalStrength(currStatus);
       }
-      measureCurrSeconds = getCurrentTime();
+      measureStartSeconds = getCurrentTime();
 
       // MAIN LOOP
+      ESP_LOGI("MAIN", "Socket status: %d", currStatus.socketStatus);
+
       switch (currStatus.socketStatus)
       {
       case SocketStatus::SOCKET_AUTHENTICATED:
@@ -438,7 +446,7 @@ void loop()
         // STATUS?
         statusCurrSeconds = getCurrentTime();
 
-        if ((statusCurrSeconds - statusStartSeconds) > config.statusDelay)
+        if ((statusCurrSeconds - statusStartSeconds) > currStatus.config.statusDelay)
         {
           ESP_LOGI("STATUS", "Time period elapsed");
 
@@ -446,14 +454,13 @@ void loop()
           statusStartSeconds = getCurrentTime();
         }
       }
-
       break;
 
       case SocketStatus::SOCKET_CONNECTED:
         authenticateDevice(currStatus);
         break;
 
-      default:
+      case SocketStatus::SOCKET_OFF:
         connectSocket(currStatus);
         break;
       }
@@ -474,8 +481,7 @@ void loop()
       currStatus.socketStatus = SocketStatus::SOCKET_OFF;
 
       if (currStatus.socketStatus == SocketStatus::SOCKET_AUTHENTICATED ||
-          currStatus.socketStatus == SocketStatus::SOCKET_CONNECTED ||
-          currStatus.socketStatus == SocketStatus::SOCKET_CREATED)
+          currStatus.socketStatus == SocketStatus::SOCKET_CONNECTED)
       {
         closeSocket(currStatus);
       }

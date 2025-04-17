@@ -13,9 +13,9 @@ void encryptData(const std::string &data, ecc_key &key, byte *out, word32 &outLe
 
 void decryptData(const byte *data, word32 dataLength, ecc_key &key, std::string &out);
 
-void generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 outLength);
+void generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 &outLength);
 
-bool validateSignature(const byte *signature, word32 sigLength, const std::string &data, const ecc_key &key);
+bool verifySignature(const byte *signature, word32 sigLength, const std::string &data, const ecc_key &key);
 
 //Loads given key in PEM format (MUST include ---BEGIN header)
 ecc_key loadKey(const char *keyPem, bool isPrivate);

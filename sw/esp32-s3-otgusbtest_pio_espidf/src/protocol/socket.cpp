@@ -72,7 +72,7 @@ void initSocket(DeviceStatus &status)
 
 void connectSocket(DeviceStatus &status)
 {
-    std::string resp;
+     std::string resp;
 
     // Create socket
     writeData(COMMAND_CREATE_SOCKET);
@@ -92,15 +92,10 @@ void connectSocket(DeviceStatus &status)
 
     writeData(connect);
     delay(1000);
+    delay(CONNECT_TIMEOUT * 1000);
     resp = receiveRawData();
 
-    if (resp != COMMAND_RESPONSE_OK)
-    {
-        ESP_LOGE("CONNECT", "Failed to create socket");
-    }
-    delay(CONNECT_TIMEOUT * 1000);
-
-    std::pair values = getValuesFromAt(resp);
+    std::pair<int, int> values = getValuesFromAt(resp);
 
     if (values.second == 0)
     {
@@ -237,6 +232,8 @@ void sendNack(DeviceStatus &status)
 
 void authenticateDevice(DeviceStatus &status)
 {
+    ESP_LOGI("AUTH:", "Starting device AUTH process");
+
     // Send connect message
     ProtocolMessage msg;
     initMessage(msg, status);
@@ -262,7 +259,7 @@ void authenticateDevice(DeviceStatus &status)
             hexToData(signature, sigBytes);
 
             // Server ID should be always 0
-            if (validateSignature(sigBytes, sigLength, "0", status.serverKey))
+            if (verifySignature(sigBytes, sigLength, "0", status.serverKey))
             {
                 ESP_LOGI("AUTH:", "Sucessfully authenticated device");
 
@@ -388,8 +385,8 @@ void getSignalStrength(DeviceStatus &status)
     }
 
     std::pair value = getValuesFromAt(response);
-    ESP_LOGI("VALUE", "FIRST %d", value.first);
-    ESP_LOGI("VALUE", "SECOND %d", value.second);
+    // ESP_LOGI("VALUE", "FIRST %d", value.first);
+    // ESP_LOGI("VALUE", "SECOND %d", value.second);
 
     if (value.second != 1 && value.second != 5)
     {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <esp_timer.h> 
+#include <esp_timer.h>
 #include <stdint.h>
 #include <string>
 #include <wolfssl/wolfcrypt/ecc.h>
@@ -9,7 +9,6 @@
 enum SocketStatus
 {
     SOCKET_OFF,
-    SOCKET_CREATED,
     SOCKET_CONNECTED,
     SOCKET_AUTHENTICATED
 };
@@ -33,11 +32,6 @@ struct DeviceConfig
 class DeviceStatus
 {
 public:
-    // Static fields
-    ecc_key key;
-    ecc_key serverKey;
-    uint16_t deviceId;
-
     // System information
     uint8_t battery;
     uint8_t signal;
@@ -52,6 +46,11 @@ public:
     // Device dynamic config
     DeviceConfig config;
 
+    // Static fields
+    ecc_key key;
+    ecc_key serverKey;
+    uint16_t deviceId;
+    
     // Get the current battery level - read from voltage
     void updateBatteryLevel();
 };

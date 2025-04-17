@@ -4,12 +4,21 @@ Examples: https://github.com/wolfSSL/wolfssl-examples/blob/master/ecc/
 Docs: https://www.wolfssl.com/documentation/manuals/wolfssl/ecc_8h.html
  */
 
+std::string addPKCS7Padding(const std::string &data)
+{
+    std::string padded = data;
+    size_t padLen = MESSAGE_BLOCK_SIZE - (data.size() % MESSAGE_BLOCK_SIZE);
+    if (padLen == 0)
+        padLen = MESSAGE_BLOCK_SIZE; // Full block padding if already aligned
+
+    return padded.append(padLen, static_cast<char>(padLen));
+}
+
 void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &outLength)
 {
     int ret = 0;
     WC_RNG rng;
 
-    // Init rng
     ret = wc_InitRng(&rng);
 
     if (ret != 0)
@@ -34,10 +43,23 @@ void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
         throw std::invalid_argument("ENCRYPT: Failed to make ephemeral key, ret code: " + std::to_string(ret));
     }
 
-    //TODO: Padding
+    // TODO: Padding
+    std::string padded = addPKCS7Padding(data);
 
-    ret = wc_ecc_encrypt(&ephemeralKey, &pubKey, reinterpret_cast<const byte *>(data.data()), data.size(), outBuffer, &outLength, nullptr);
+    ret = wc_InitRng(&rng);
 
+    if (ret != 0)
+    {
+        throw std::invalid_argument("ENCRYPT: Failed to init RNG");
+    }
+
+    ret = wc_ecc_set_rng(&ephemeralKey, &rng);
+    if (ret != 0)
+    {
+        throw std::invalid_argument("ENCRYPT: Failed to set RNG for a key");
+    }
+
+    ret = wc_ecc_encrypt(&ephemeralKey, &pubKey, reinterpret_cast<const byte *>(padded.data()), padded.size(), outBuffer, &outLength, nullptr);
     if (ret == 0)
     {
         // Success
@@ -62,7 +84,7 @@ void decryptData(const byte *data, word32 dataLength, ecc_key &privKey, std::str
     throw std::invalid_argument("DECRYPT: Failed to decrypt data, ret code: " + std::to_string(ret));
 }
 
-void generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 & outLength)
+void generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 &outLength)
 {
     int ret = 0;
     WC_RNG rng;

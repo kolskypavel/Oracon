@@ -7,8 +7,8 @@ void test_encrypt_decrypt(DeviceStatus &status)
 {
     const std::string data = "TEST DATA";
     std::string decrypted;
-    byte out[100];
-    word32 outLength;
+    byte out[MAX_MESSAGE_SIZE];
+    word32 outLength = MAX_MESSAGE_SIZE;
 
     try
     {
@@ -18,9 +18,10 @@ void test_encrypt_decrypt(DeviceStatus &status)
     }
     catch (const std::invalid_argument &ex)
     {
-        ESP_LOGE("CRYPTO TEST", "Failed to encrypt/decrypt data");
+        ESP_LOGE("CRYPTO TEST", "Failed to encrypt/decrypt data %s", ex.what());
     }
 
+    delay(10000);
     if (decrypted != data)
     {
         ESP_LOGE("CRYPTO TEST", "Output mismatch!");
@@ -46,7 +47,7 @@ void test_signature(const DeviceStatus &status)
     }
     catch (const std::invalid_argument &ex)
     {
-        ESP_LOGE("CRYPTO TEST", "Failed to sign/verify data");
+        ESP_LOGE("CRYPTO TEST", "Failed to sign/verify data %s", ex.what());
     }
 
     if (!isValid)
@@ -55,10 +56,4 @@ void test_signature(const DeviceStatus &status)
         return;
     }
     ESP_LOGI("CRYPTO TEST", "Signature test success");
-}
-
-void runCryptoTest(DeviceStatus &status)
-{
-    test_encrypt_decrypt(status);
-    test_signature(status);
 }

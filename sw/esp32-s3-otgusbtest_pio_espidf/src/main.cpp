@@ -382,10 +382,9 @@ void setup()
     ESP_LOGE("INIT", "Failed to init, cause: %s", ex.what());
   }
 
-  // runCryptoTest(currStatus);
-  wolfSSL_Debugging_ON();
-
-  // Intial delay for NB-IOT module
+  test_encrypt_decrypt(currStatus);
+  test_signature(currStatus);
+   // Intial delay for NB-IOT module
   // vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
 }
 

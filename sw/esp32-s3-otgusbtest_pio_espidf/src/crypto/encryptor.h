@@ -9,6 +9,8 @@
 #include <wolfssl/wolfcrypt/asn_public.h>
 #include "defines.h"
 
+std::string addPKCS7Padding(const std::string & data);
+
 void encryptData(const std::string &data, ecc_key &key, byte *out, word32 &outLength);
 
 void decryptData(const byte *data, word32 dataLength, ecc_key &key, std::string &out);
@@ -28,4 +30,5 @@ ecc_key loadKey(const char *keyPem, bool isPrivate);
  *   #define WOLFCRYPT_ONLY
  *   #define WOLFSSL_PUB_PEM_TO_DER
  *   # logging function disabled
+ *   Undef SHAKE and SHA 224 in options.h
  */

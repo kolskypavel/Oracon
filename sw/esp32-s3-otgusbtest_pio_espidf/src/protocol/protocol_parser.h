@@ -12,18 +12,22 @@
 std::string dataToHex(const byte *data, int dataLen);
 
 // Converts given HEX to byte data
-void hexToData(std::string in, byte *out);
+void hexToData(const std::string &in, byte *out);
+
+// Trim leading and ending whitespaces
+void trimmString(std::string &text);
 
 // Checks if text starts with given prefix
-bool startsWith(std::string text, std::string prefix);
+bool startsWith(const std::string &text, const std::string &prefix);
 
 // Gets suffix after string str
-std::string getSuffix(std::string input, std::string str);
+std::string getSuffix(const std::string &input, const std::string &str);
 
-std::string getPrefix(std::string input,std::string str);
+// Gets prefix after string str
+std::string getPrefix(const std::string &input,const std::string & str);
 
 // Parses the values from a command in a format COM:<X>,<Y>
-std::pair<int, int> getValuesFromAt(std::string command);
+std::pair<int, int> getValuesFromAt(const std::string & command);
 
 /**
  * @brief Attempts to parse the given string to a protocol message
@@ -59,3 +63,6 @@ std::string dataToSignature(const std::string &data);
 
 // Deserialize string to config object
 DeviceConfig stringToConfig(const std::string &data);
+
+//Returns a cause for given error code - from SIMCom AT manual
+const char * getCause(uint8_t errCode);

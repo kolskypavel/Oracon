@@ -36,8 +36,6 @@ public:
     // Static fields
     ecc_key key;
     ecc_key serverKey;
-    std::string serverIp;
-    uint16_t serverPort;
     uint16_t deviceId;
 
     // System information

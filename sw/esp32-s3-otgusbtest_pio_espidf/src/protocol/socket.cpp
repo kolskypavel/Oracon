@@ -4,6 +4,7 @@ void writeData(const std::string &data)
 {
     nbiot_serial.println(data.c_str());
     ESP_LOGI("SOCKET", "Wrote data: %s", data.c_str());
+    delay(100);
 }
 
 std::string receiveRawData()
@@ -13,7 +14,7 @@ std::string receiveRawData()
 
     while (nbiot_serial.available() == 0)
     {
-        if (timeout >= SOCKET_TIMEOUT)
+        if (timeout >= SOCKET_READ_TIMEOUT)
         {
             throw SocketException("Socket timeout expired");
         }
@@ -40,6 +41,7 @@ std::string receiveRawData()
         i++;
     }
 
+    trimmString(out); // Trim leading/trailing whitespaces
     ESP_LOGI("DATA", "Received: %s", out.c_str());
     return out;
 }
@@ -76,33 +78,40 @@ void connectSocket(DeviceStatus &status)
     writeData(COMMAND_CREATE_SOCKET);
     resp = receiveRawData();
 
-    if (!startsWith(resp, COMMAND_RESPONSE_OK))
+    if (!startsWith(resp, COMMAND_RESPONSE_OK) && !startsWith(resp, COMMAND_RESPONSE_SOCKET_EXISTING))
     {
         ESP_LOGE("CONNECT", "Failed to create socket");
         return;
     }
 
-    // TODO: Extract the socket ID - verify
-    int socketId = std::stoi(getSuffix(resp, ":"));
-
     std::string connect = COMMAND_CONNECT;
-    connect += socketId;
-    connect += ",TCP,";
+    connect += "0,\"TCP\",";
     connect += SERVER_IP;
-    connect += "," + SERVER_PORT;
+    connect += ",";
+    connect += SERVER_PORT;
 
     writeData(connect);
+    delay(1000);
     resp = receiveRawData();
 
-    if (resp == COMMAND_RESPONSE_OK)
+    if (resp != COMMAND_RESPONSE_OK)
+    {
+        ESP_LOGE("CONNECT", "Failed to create socket");
+    }
+    delay(CONNECT_TIMEOUT * 1000);
+
+    std::pair values = getValuesFromAt(resp);
+
+    if (values.second == 0)
     {
         ESP_LOGI("CONNECT", "Sucessfully connected to socket");
         status.socketStatus = SocketStatus::SOCKET_CONNECTED;
-        status.socketId = socketId;
         return;
     }
-
-    ESP_LOGE("CONNECT", "Failed to connected to a socket");
+    else
+    {
+        ESP_LOGE("CONNECT", "Failed to connect, cause %s", getCause(values.second));
+    }
 }
 
 void sendData(const byte *data, int dataLen, int socketId)
@@ -373,14 +382,16 @@ void getSignalStrength(DeviceStatus &status)
     // Check service status
     writeData(COMMAND_CHECK_SERVICE);
     response = receiveRawData();
-    if (!startsWith(response, COMMAND_RESPONSE_SIM_OK))
+    if (!startsWith(response, COMMAND_RESPONSE_SERVICE))
     {
         throw SocketException("Invalid response for service command");
     }
 
     std::pair value = getValuesFromAt(response);
+    ESP_LOGI("VALUE", "FIRST %d", value.first);
+    ESP_LOGI("VALUE", "SECOND %d", value.second);
 
-    if (value.second != 1 || value.second != 5)
+    if (value.second != 1 && value.second != 5)
     {
         throw SocketException("Failed to register to service, code" + value.second);
     }

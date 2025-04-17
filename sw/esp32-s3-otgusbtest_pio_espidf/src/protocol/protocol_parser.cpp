@@ -10,7 +10,7 @@ std::string dataToHex(const byte *data, int dataLen)
     return oss.str();
 }
 
-void hexToData(std::string in, byte *out)
+void hexToData(const std::string &in, byte *out)
 {
     if (in.length() % 2 != 0)
     {
@@ -24,16 +24,22 @@ void hexToData(std::string in, byte *out)
     }
 }
 
-bool startsWith(std::string text, std::string prefix)
+void trimmString(std::string &text)
 {
-    if (text.rfind(prefix, 0) == 0)
+    text.erase(text.find_last_not_of(WHITESPACES) + 1);
+    text.erase(0, text.find_first_not_of(WHITESPACES));
+}
+
+bool startsWith(const std::string &text, const std::string &prefix)
+{
+    if (text.compare(0, prefix.size(), prefix) == 0)
     {
         return true;
     }
     return false;
 }
 
-std::string getSuffix(std::string input, std::string str)
+std::string getSuffix(const std::string &input, const std::string &str)
 {
     size_t pos = input.find(str);
     if (pos != std::string::npos)
@@ -46,7 +52,7 @@ std::string getSuffix(std::string input, std::string str)
     }
 }
 
-std::string getPrefix(std::string input, std::string str)
+std::string getPrefix(const std::string &input, const std::string &str)
 {
     size_t pos = input.find(str);
     if (pos != std::string::npos)
@@ -59,14 +65,15 @@ std::string getPrefix(std::string input, std::string str)
     }
 }
 
-std::pair<int, int> getValuesFromAt(std::string command)
+std::pair<int, int> getValuesFromAt(const std::string &command)
 {
-    std::string trimmed = getSuffix(command, ":");
+    std::string trimmed = getSuffix(command, ": ");
     size_t commaPos = trimmed.find(',');
     if (commaPos != std::string::npos)
     {
         std::string firstStr = trimmed.substr(0, commaPos);
-        std::string secondStr = trimmed.substr(commaPos);
+        std::string secondStr = trimmed.substr(commaPos + 1);
+
         int first = std::stoi(firstStr);
         int second = std::stoi(secondStr);
 
@@ -263,4 +270,39 @@ std::string generateSignatureData(const DeviceStatus &status)
     serializeJson(doc, json);
 
     return json;
+}
+
+const char *getCause(uint8_t errCode)
+{
+    switch (errCode)
+    {
+    case 0:
+        return "Operation succeeded";
+    case 1:
+        return "Network failure";
+    case 2:
+        return "Network not opened";
+    case 3:
+        return "Wrong parameter";
+    case 4:
+        return "Operation not supported";
+    case 5:
+        return "Failed to create socket";
+    case 6:
+        return "Failed to bind socket";
+    case 7:
+        return "TCP server is already listening";
+    case 8:
+        return "Busy";
+    case 9:
+        return "Sockets opened";
+    case 10:
+        return "Timeout";
+    case 11:
+        return "DNS parse failed for AT+CIPOPEN";
+    case 12:
+        return "Unknown error";
+    default:
+        return "Unrecognized error code";
+    }
 }

@@ -16,6 +16,7 @@ Implementation of the ORacon protocol
 #include "defines.h"
 #include "secrets.h"
 
+
 // Writes the given raw data to serial
 void writeData(const std::string &data);
 

@@ -328,8 +328,6 @@ void initStatus()
     currStatus.config.statusDelay = INIT_STATUS_DELAY;
   }
 
-  currStatus.serverIp = SERVER_IP;
-  currStatus.serverPort = SERVER_PORT;
   currStatus.key = loadKey(DEVICE_PRIVATE_KEY, true);
   currStatus.serverKey = loadKey(SERVER_PUBLIC_KEY, false);
 
@@ -371,7 +369,7 @@ void setup()
     initSocket(currStatus);
 
     // INIT TASKS
-    initTasks();
+    // initTasks();
   }
   catch (const std::runtime_error &ex)
   {

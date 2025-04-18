@@ -382,9 +382,9 @@ void setup()
     ESP_LOGE("INIT", "Failed to init, cause: %s", ex.what());
   }
 
-  test_encrypt_decrypt(currStatus);
+  // test_encrypt_decrypt(currStatus);
   test_signature(currStatus);
-   // Intial delay for NB-IOT module
+  // Intial delay for NB-IOT module
   // vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
 }
 
@@ -476,14 +476,13 @@ void loop()
     {
       ESP_LOGE("SOCKET_EXCEPTION", "Error: %s", ex.what());
 
-      currStatus.runStatus = RunStatus::SOCKET_ERROR;
-      currStatus.socketStatus = SocketStatus::SOCKET_OFF;
-
       if (currStatus.socketStatus == SocketStatus::SOCKET_AUTHENTICATED ||
           currStatus.socketStatus == SocketStatus::SOCKET_CONNECTED)
       {
         closeSocket(currStatus);
       }
+      currStatus.runStatus = RunStatus::SOCKET_ERROR;
+      currStatus.socketStatus = SocketStatus::SOCKET_OFF;
       // TODO: set out the status LEDs
       status_led.setColorPreset(StatusLED::ORANGE);
     }

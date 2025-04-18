@@ -47,9 +47,10 @@ public:
     DeviceConfig config;
 
     // Static fields
+    uint16_t deviceId;
     ecc_key key;
     ecc_key serverKey;
-    uint16_t deviceId;
+   
     
     // Get the current battery level - read from voltage
     void updateBatteryLevel();

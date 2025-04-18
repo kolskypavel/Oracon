@@ -24,8 +24,10 @@ ecc_key loadKey(const char *keyPem, bool isPrivate);
 
 /*
  *  Following things modified in wolfssl
+ *   #define WOLFSSL_NOSHA512_224 
  *   #undef HAVE___UINT128_T
  *   #define HAVE_ECC_ENCRYPT
+ *   #define WOLFSSL_HAVE_SP_ECC
  *   #define HAVE_HKDF
  *   #define WOLFCRYPT_ONLY
  *   #define WOLFSSL_PUB_PEM_TO_DER

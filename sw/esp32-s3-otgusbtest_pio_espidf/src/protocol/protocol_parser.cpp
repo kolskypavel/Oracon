@@ -138,9 +138,10 @@ std::string messageToString(const ProtocolMessage &message)
 {
     JsonDocument doc;
 
+    doc["type"] = messageTypeToString(message.type);
     doc["device"] = message.deviceId;
     doc["token"] = message.token;
-    doc["data"] = message.data;
+    doc["data"] = serialized(message.data);
 
     std::string output;
     serializeJson(doc, output);

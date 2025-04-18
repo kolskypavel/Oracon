@@ -72,7 +72,7 @@ void initSocket(DeviceStatus &status)
 
 void connectSocket(DeviceStatus &status)
 {
-     std::string resp;
+    std::string resp;
 
     // Create socket
     writeData(COMMAND_CREATE_SOCKET);
@@ -113,10 +113,12 @@ void sendData(const byte *data, int dataLen, int socketId)
 {
     std::string buffer;
     std::string hexData = dataToHex(data, dataLen);
+    hexData += "\n";
+
     buffer += COMMAND_SEND;
-    buffer += socketId;
+    buffer += std::to_string(socketId);
     buffer += ",";
-    buffer += hexData.size();
+    buffer += std::to_string(hexData.size());
 
     // Send sending command
     writeData(buffer);
@@ -134,7 +136,7 @@ void sendData(const byte *data, int dataLen, int socketId)
     buffer = receiveRawData();
 
     // Wait for positive reply
-    if (buffer == COMMAND_RESPONSE_OK)
+    if (startsWith(buffer, COMMAND_RESPONSE_OK))
     {
         return;
     }
@@ -144,21 +146,21 @@ void sendData(const byte *data, int dataLen, int socketId)
     {
         throw SocketException("Error when sending data");
     }
-    throw SocketException("Error when sending data - other");
 }
 
 void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
 {
     std::string data = messageToString(protocolMessage);
 
-    byte buf[MAX_MESSAGE_SIZE];
-    word32 encSize;
+    // byte buf[MAX_MESSAGE_SIZE];
+    // word32 encSize;
 
-    encryptData(data, status.key, buf, encSize);
+    // encryptData(data, status.key, buf, encSize);
 
     // Write to serial
-    sendData(buf, encSize, status.socketId);
-    ESP_LOGI("SENDMSG:", "Sucessfully sent data");
+    // sendData(buf, encSize, status.socketId);
+    sendData(reinterpret_cast<const byte *>(data.data()), data.size(), status.socketId);
+    ESP_LOGI("SENDMSG", "Sucessfully sent data");
 }
 
 std::string getData(DeviceStatus &status)
@@ -179,6 +181,7 @@ std::string getData(DeviceStatus &status)
 
         decryptData(rawData, (trimmed.size() / 2), status.key, out);
         ESP_LOGI("GETDATA:", "Sucessfully received data");
+        Serial.print(out.c_str());
 
         return out;
     }
@@ -232,8 +235,6 @@ void sendNack(DeviceStatus &status)
 
 void authenticateDevice(DeviceStatus &status)
 {
-    ESP_LOGI("AUTH:", "Starting device AUTH process");
-
     // Send connect message
     ProtocolMessage msg;
     initMessage(msg, status);
@@ -348,8 +349,14 @@ bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount)
 
 void closeSocket(DeviceStatus &status)
 {
-    std::string out = COMMAND_CLOSE + std::to_string(status.socketId);
-    writeData(out);
+    writeData(COMMAND_CLOSE);
+    std::string resp = receiveRawData();
+    if (startsWith(resp, COMMAND_RESPONSE_OK))
+    {
+        ESP_LOGI("SOCKET:", "Socket closed successfuly");
+        return;
+    }
+    ESP_LOGE("SOCKET:", "Failed to close socket");
 }
 
 void getSignalStrength(DeviceStatus &status)

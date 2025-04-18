@@ -40,22 +40,19 @@ void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
     ret = wc_ecc_make_key(&rng, 32, &ephemeralKey);
     if (ret != 0)
     {
+        wc_FreeRng(&rng);
+        wc_ecc_free(&ephemeralKey);
         throw std::invalid_argument("ENCRYPT: Failed to make ephemeral key, ret code: " + std::to_string(ret));
     }
 
     // TODO: Padding
     std::string padded = addPKCS7Padding(data);
 
-    ret = wc_InitRng(&rng);
-
-    if (ret != 0)
-    {
-        throw std::invalid_argument("ENCRYPT: Failed to init RNG");
-    }
-
     ret = wc_ecc_set_rng(&ephemeralKey, &rng);
     if (ret != 0)
     {
+        wc_FreeRng(&rng);
+        wc_ecc_free(&ephemeralKey);
         throw std::invalid_argument("ENCRYPT: Failed to set RNG for a key");
     }
 
@@ -63,6 +60,8 @@ void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
     if (ret == 0)
     {
         // Success
+        wc_FreeRng(&rng);
+        wc_ecc_free(&ephemeralKey);
         return;
     }
     throw std::invalid_argument("ENCRYPT: Failed to encrypt given data, ret code: " + std::to_string(ret));
@@ -97,7 +96,7 @@ void generateSignature(const std::string &data, const ecc_key &privKey, byte *si
         throw std::invalid_argument("SIGNATURE: Failed to init RNG, ret code: " + std::to_string(ret));
     }
 
-    ret = wc_SignatureGenerate(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, &outLength, &privKey, sizeof(privKey), &rng);
+    ret = wc_SignatureGenerate_ex(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, &outLength, &privKey, sizeof(privKey), &rng, 0);
     if (ret == 0)
     {
         return;

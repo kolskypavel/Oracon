@@ -9,7 +9,8 @@ void writeData(const std::string &data)
 
 std::string receiveRawData()
 {
-    int i, timeout = 0;
+    long i = 0;
+    int timeout = 0;
     std::string out;
 
     while (nbiot_serial.available() == 0)
@@ -25,24 +26,26 @@ std::string receiveRawData()
 
     while (nbiot_serial.available())
     {
-        // if (i >= MAX_MESSAGE_SIZE)
-        // {
-        //     // Clear incoming buffer
-        //     while (Serial.available())
-        //     {
-        //         Serial.read();
-        //     }
+#ifdef LIMIT_NB_IOT_SERIAL
+        if (i >= MAX_MESSAGE_SIZE)
+        {
+            // Clear incoming buffer
+            while (Serial.available())
+            {
+                Serial.read();
+            }
 
-        //     throw std::invalid_argument("Message length exceeded maximal size");
-        // }
+            throw std::invalid_argument("Message length exceeded maximal size");
+        }
+#endif
 
         char c = nbiot_serial.read();
         out += c;
         i++;
     }
 
+    ESP_LOGI("DATA", "Received %ld B: %s", i, out.c_str());
     trimmString(out); // Trim leading/trailing whitespaces
-    ESP_LOGI("DATA", "Received: %s", out.c_str());
     return out;
 }
 
@@ -59,14 +62,17 @@ void initSocket(DeviceStatus &status)
         throw std::runtime_error("SIM not connected");
     }
 
-    // Disable ip output when receiving data
-    writeData(COMMAND_DISABLE_IP_OUTPUT);
+    // Set socket to buffer receiving data
+    writeData(COMMAND_RECEIVE_DATA + "1");
     resp = receiveRawData();
 
     if (!startsWith(resp, COMMAND_RESPONSE_OK))
     {
-        throw std::runtime_error("Failed to disable IP output");
+        throw std::runtime_error("Failed to set buffered output");
     }
+
+    //TODO: set timeouts
+    
     ESP_LOGI("CONNECT", "Socket init successful");
 }
 
@@ -74,15 +80,23 @@ void connectSocket(DeviceStatus &status)
 {
     std::string resp;
 
-    // Create socket
-    writeData(COMMAND_CREATE_SOCKET);
+    // Check netopen status
+    writeData(COMMAND_CREATE_SOCKET + "?");
     resp = receiveRawData();
 
-    if (!startsWith(resp, COMMAND_RESPONSE_OK) && !startsWith(resp, COMMAND_RESPONSE_SOCKET_EXISTING))
+    if (!startsWith(resp, COMMAND_RESPONSE_SOCKET_EXISTING))
     {
-        ESP_LOGE("CONNECT", "Failed to create socket");
-        return;
+        writeData(COMMAND_CREATE_SOCKET);
+        resp = receiveRawData();
+
+        if (!startsWith(resp, COMMAND_RESPONSE_OK))
+        {
+            ESP_LOGE("CONNECT", "Failed to create socket");
+            return;
+        }
     }
+
+    // Check socket connection status
 
     std::string connect = COMMAND_CONNECT;
     connect += "0,\"TCP\",";
@@ -152,14 +166,16 @@ void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
 {
     std::string data = messageToString(protocolMessage);
 
-    // byte buf[MAX_MESSAGE_SIZE];
-    // word32 encSize;
-
-    // encryptData(data, status.key, buf, encSize);
-
-    // Write to serial
-    // sendData(buf, encSize, status.socketId);
+#ifdef TEST_ORACON_NO_ENCRYPTION
     sendData(reinterpret_cast<const byte *>(data.data()), data.size(), status.socketId);
+#else
+    byte buf[MAX_MESSAGE_SIZE];
+    word32 encSize;
+
+    encryptData(data, status.key, buf, encSize);
+    sendData(buf, encSize, status.socketId);
+#endif
+
     ESP_LOGI("SENDMSG", "Sucessfully sent data");
 }
 
@@ -167,22 +183,27 @@ std::string getData(DeviceStatus &status)
 {
     std::string received = receiveRawData();
 
-    // Check if data doesn't exceed max message size
-    if (startsWith(received, COMMAND_RESPONSE_INCOMMING_DATA) && received.size() <= (MAX_MESSAGE_SIZE + COMMAND_RESPONSE_INCOMMING_DATA.size()))
+    if (startsWith(received, COMMAND_RESPONSE_INCOMMING_DATA))
     {
-        std::string trimmed = getSuffix(received, "\r\n"); // Trim the message indicator
-        // uint16_t dataSize = 0;
-        // std::string sizeString = getPrefix(trimmed, "\r");
-        // trimmed = getSuffix(trimmed, "\r\n");
+        writeData(COMMAND_RECEIVE_DATA + SOCKET_READ_MODE + ",0");
+        received = receiveRawData();
 
+        // std::string sizeString = getSubstr(received, COMMAND_RESPONSE_INCOMMING_DATA, "\r\n");
+        // ESP_LOGI("GETDATA", "Data size str %s", sizeString.c_str());
+        // uint16_t dataSize = std::stoi(sizeString);
+        std::string trimmed = getSubstr(received, "\r\n", "\r\nOK"); // Trim the message indicator
+        trimmString(trimmed);
+
+        std::string out;
         byte rawData[MAX_MESSAGE_SIZE];
         hexToData(trimmed, rawData);
-        std::string out;
 
+#ifdef TEST_ORACON_NO_ENCRYPTION
+        out = std::string(reinterpret_cast<const char *>(rawData), trimmed.size() / 2);
+#else
         decryptData(rawData, (trimmed.size() / 2), status.key, out);
-        ESP_LOGI("GETDATA:", "Sucessfully received data");
-        Serial.print(out.c_str());
-
+#endif
+        ESP_LOGI("GETDATA", "Sucessfully received data");
         return out;
     }
 
@@ -202,6 +223,7 @@ ProtocolMessage getNewMessage(DeviceStatus &status)
 {
     std::string received = getData(status);
     ProtocolMessage msg = parseMessage(received);
+    ESP_LOGI("PARSER", "Successfuly parsed new message");
 
     if (validateMessage(msg, status))
     {
@@ -218,6 +240,7 @@ void initMessage(ProtocolMessage &msg, DeviceStatus &status)
 
 void sendAck(DeviceStatus &status)
 {
+    ESP_LOGI("ACK:", "Sending ACK");
     ProtocolMessage msg;
     initMessage(msg, status);
     msg.type = ProtocolMessageType::TYPE_ACK;
@@ -226,6 +249,7 @@ void sendAck(DeviceStatus &status)
 
 void sendNack(DeviceStatus &status)
 {
+    ESP_LOGI("NACK:", "Sending NACK");
     ProtocolMessage msg;
     initMessage(msg, status);
     msg.type = ProtocolMessageType::TYPE_NACK;
@@ -242,7 +266,7 @@ void authenticateDevice(DeviceStatus &status)
     msg.data = generateSignatureData(status); // Add signature
 
     sendMessage(msg, status);
-    ESP_LOGI("AUTH:", "Connect sent");
+    ESP_LOGI("AUTH", "Connect sent");
 
     try
     {
@@ -251,30 +275,37 @@ void authenticateDevice(DeviceStatus &status)
 
         if (msg.type == ProtocolMessageType::TYPE_CONNECT)
         {
-            ESP_LOGI("AUTH:", "Connect message received");
+            ESP_LOGI("AUTH", "Connect message received");
 
             std::string signature = dataToSignature(msg.data);
             byte sigBytes[MAX_SIGNATURE_SIZE];
 
-            word32 sigLength = signature.size() / 2; // Hex encoded string - actual size is half
             hexToData(signature, sigBytes);
 
+#ifdef TEST_ORACON_NO_SIGNATURE_VERIFICATION
+            sendAck(status);
+            status.token = msg.token;
+            status.socketStatus = SocketStatus::SOCKET_AUTHENTICATED;
+            return;
+#else
+            word32 sigLength = signature.size() / 2; // Hex encoded string - actual size is half
             // Server ID should be always 0
-            if (verifySignature(sigBytes, sigLength, "0", status.serverKey))
+            if (verifySignature("0", status.serverKey, sigBytes, sigLength))
             {
-                ESP_LOGI("AUTH:", "Sucessfully authenticated device");
-
+                ESP_LOGI("AUTH", "Sucessfully authenticated device");
+                status.token = msg.token;
                 sendAck(status);
                 status.socketStatus = SocketStatus::SOCKET_AUTHENTICATED;
                 return;
             }
-            ESP_LOGE("AUTH:", "Failed to verify server signature");
+            ESP_LOGE("AUTH", "Failed to verify server signature");
+#endif
         }
-        ESP_LOGE("AUTH:", "Connect message not received");
+        ESP_LOGE("AUTH", "Connect message not received");
     }
     catch (const std::invalid_argument &ex)
     {
-        ESP_LOGE("AUTH:", "Error: %s", ex.what());
+        ESP_LOGE("AUTH", "Error: %s", ex.what());
     }
 
     // Throw exception to terminate socket connection

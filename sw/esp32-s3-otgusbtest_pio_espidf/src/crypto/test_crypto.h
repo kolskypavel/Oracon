@@ -12,7 +12,7 @@ void test_encrypt_decrypt(DeviceStatus &status)
 
     try
     {
-        encryptData(data, status.key, out, outLength);
+        encryptData(data, status.publicKey, out, outLength);
 
         decryptData(out, outLength, status.key, decrypted);
     }
@@ -43,7 +43,7 @@ void test_signature(const DeviceStatus &status)
         generateSignature(message, status.key, signature, sigLength);
 
         // Verify the signature
-        verifySignature(signature, sigLength, message, status.key);
+        isValid = verifySignature(message, status.publicKey, signature, sigLength);
     }
     catch (const std::invalid_argument &ex)
     {

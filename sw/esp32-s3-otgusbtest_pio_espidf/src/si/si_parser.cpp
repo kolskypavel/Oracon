@@ -4,6 +4,7 @@ const static char *TAG = "SI PARSER";
 
 SIRecord parseSIdata(const uint8_t *data, size_t data_len)
 {
+  ESP_LOGI("PARSING", "Data len %d", data_len);
   uint16_t si_stationnumber = 0;
   uint32_t si_cardnumber = 0;
   uint8_t si_weeknumrelative = 0;

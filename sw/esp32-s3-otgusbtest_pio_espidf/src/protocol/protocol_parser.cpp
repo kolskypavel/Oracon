@@ -12,6 +12,7 @@ std::string dataToHex(const byte *data, int dataLen)
 
 void hexToData(const std::string &in, byte *out)
 {
+    ESP_LOGI("HEX", "Parsing: %s", in.c_str());
     if (in.length() % 2 != 0)
     {
         throw std::invalid_argument("Invalid input string length or insufficient output buffer size");
@@ -52,12 +53,13 @@ std::string getSuffix(const std::string &input, const std::string &str)
     }
 }
 
-std::string getPrefix(const std::string &input, const std::string &str)
+std::string getSubstr(const std::string &input, const std::string &start, const std::string &end)
 {
-    size_t pos = input.find(str);
-    if (pos != std::string::npos)
+    size_t startPos = input.find(start);
+    size_t endPos = input.find(end);
+    if (startPos != std::string::npos && endPos != std::string::npos)
     {
-        return input.substr(pos + str.length());
+        return input.substr(startPos + start.size(), endPos - startPos);
     }
     else
     {
@@ -185,6 +187,12 @@ std::string punchesToString(const SIRecord punches[], int size)
 
     for (int i = 0; i < size; ++i)
     {
+        ESP_LOGI("Parser:", "Punch: [O %d,S %d,C %d, T %s]",
+                 punches[i].order,
+                 punches[i].stationNumber,
+                 punches[i].cardNumber,
+                 punches[i].time.c_str());
+
         JsonObject punchObj = punchesArray.add<JsonObject>();
         punchObj["order"] = punches[i].order;
         punchObj["stationNumber"] = punches[i].stationNumber;

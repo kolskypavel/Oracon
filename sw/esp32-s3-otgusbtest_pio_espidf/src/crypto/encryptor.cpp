@@ -96,7 +96,8 @@ void generateSignature(const std::string &data, const ecc_key &privKey, byte *si
         throw std::invalid_argument("SIGNATURE: Failed to init RNG, ret code: " + std::to_string(ret));
     }
 
-    ret = wc_SignatureGenerate_ex(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, &outLength, &privKey, sizeof(privKey), &rng, 0);
+    ret = wc_SignatureGenerate(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, &outLength, &privKey, sizeof(privKey), &rng);
+    wc_FreeRng(&rng);
     if (ret == 0)
     {
         return;
@@ -104,14 +105,15 @@ void generateSignature(const std::string &data, const ecc_key &privKey, byte *si
     throw std::invalid_argument("SIGNATURE: Failed to generate signature ret code: " + std::to_string(ret));
 }
 
-bool verifySignature(const byte *signature, word32 sigLength, const std::string &data, const ecc_key &pubKey)
+bool verifySignature(const std::string &data, const ecc_key &key, const byte *signature, word32 sigLength)
 {
-    int ret = wc_SignatureVerify(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, sigLength, &pubKey, sizeof(pubKey));
+    int ret = wc_SignatureVerify(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, sigLength, &key, sizeof(key));
 
     if (ret == 0)
     {
         return true;
     }
+    ESP_LOGE("SIGN", "Failed to verify signature, err: %d", ret);
     return false;
 }
 

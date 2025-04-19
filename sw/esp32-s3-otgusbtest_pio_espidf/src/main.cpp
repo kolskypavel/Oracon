@@ -12,7 +12,7 @@
 #include "freertos/queue.h"
 
 #include "esp32_usb_serial.h"
-#include <wolfssl/options.h>
+#include "wolfssl.h"
 #include <wolfssl/wolfcrypt/ecc.h>
 
 #include "led/statusled.hpp"
@@ -28,6 +28,7 @@
 // DO NOT INCLUDE in VCS
 #include "secrets.h"
 #include <wolfssl/wolfcrypt/logging.h>
+#include <esp_task_wdt.h>
 
 SemaphoreHandle_t device_disconnected_sem;
 std::unique_ptr<CdcAcmDevice> vcp;
@@ -222,6 +223,7 @@ static void rs232_serial_task(void *pvParameter)
   while (true)
   {
     finished = true;
+
     // Clear buffer
     for (int c = 0; c < MAX_SI_DATA_SIZE; c++)
     {
@@ -230,6 +232,7 @@ static void rs232_serial_task(void *pvParameter)
 
     if (rs232_serial.available())
     {
+      ESP_LOGI("RS232", "Receiving data from r232 serial");
       int i = 0;
       while (rs232_serial.available())
       {
@@ -246,16 +249,26 @@ static void rs232_serial_task(void *pvParameter)
       }
       if (finished)
       {
-        ESP_LOGI("RS232", "Received SI-Card data from r232 serial");
         SIRecord record = parseSIdata(buffer, i);
 
-        if (xQueueSend(punchQueue, &record, 0) != pdPASS)
+        ESP_LOGI("RS232", "Parsed SI-Card data from r232 serial:[O %d,S %d,C %d, T %s]",
+                 record.order,
+                 record.stationNumber,
+                 record.order,
+                 record.time.c_str());
+
+        //Check if data is somehow valid
+        if (record.cardNumber != 0 && record.stationNumber != 0)
         {
-          ESP_LOGE("RS232", "Queue is full");
-          // TODO: signal
+          if (xQueueSend(punchQueue, &record, 0) != pdPASS)
+          {
+            ESP_LOGE("RS232", "Queue is full");
+            // TODO: signal with LED
+          }
         }
       }
     }
+    delay(1);
   }
 }
 
@@ -263,7 +276,7 @@ void initTasks()
 {
   BaseType_t res = xTaskCreate(
       rs232_serial_task, "rs232_serial_task",
-      ESP_USB_SERIAL_TASK_SIZE, nullptr, ESP_USB_SERIAL_TASK_PRIORITY, nullptr);
+      4096, nullptr, ESP_USB_SERIAL_TASK_PRIORITY, nullptr);
 
   if (res != pdPASS)
   {
@@ -313,6 +326,7 @@ void initTasks()
   //   Serial.println("USB Serial Connection Task created successfully");
   // }
   // usbReady = true;
+  ESP_LOGI("TASKS", "Tasks init successfuly");
 }
 
 void initStatus()
@@ -332,6 +346,7 @@ void initStatus()
 
   currStatus.deviceId = DEVICE_ID;
   currStatus.key = loadKey(DEVICE_PRIVATE_KEY, true);
+  currStatus.publicKey = loadKey(DEVICE_PUBLIC_KEY, false);
   currStatus.serverKey = loadKey(SERVER_PUBLIC_KEY, false);
 
   ESP_LOGI("INIT", "Status init successful");
@@ -368,11 +383,11 @@ void setup()
     // INIT STATUS
     initStatus();
 
+    // INIT TASKS
+    initTasks();
+
     // INIT SOCKET
     initSocket(currStatus);
-
-    // INIT TASKS
-    // initTasks();
   }
   catch (const std::runtime_error &ex)
   {
@@ -382,8 +397,13 @@ void setup()
     ESP_LOGE("INIT", "Failed to init, cause: %s", ex.what());
   }
 
-  // test_encrypt_decrypt(currStatus);
+#ifdef TEST_WOLFCRYPT
+  // wolfSSL_Debugging_ON();
+  test_encrypt_decrypt(currStatus);
   test_signature(currStatus);
+  delay(10000);
+#endif
+
   // Intial delay for NB-IOT module
   // vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
 }
@@ -438,6 +458,7 @@ void loop()
           receivePunches();
           if (received > 0)
           {
+            ESP_LOGI("MAIN:", "Sending punches");
             punchesSent = false; // In case exception gets thrown, so the records don't get lost
             punchesSent = sendPunches(currStatus, punches, received);
           }

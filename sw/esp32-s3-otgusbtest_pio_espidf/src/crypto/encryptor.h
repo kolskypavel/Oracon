@@ -2,14 +2,15 @@
 
 #include <string>
 #include <stdexcept>
+#include <Arduino.h>
 
-#include <wolfssl/options.h>
+#include "wolfssl.h"
 #include <wolfssl/wolfcrypt/ecc.h>
 #include <wolfssl/wolfcrypt/signature.h>
 #include <wolfssl/wolfcrypt/asn_public.h>
 #include "defines.h"
 
-std::string addPKCS7Padding(const std::string & data);
+std::string addPKCS7Padding(const std::string &data);
 
 void encryptData(const std::string &data, ecc_key &key, byte *out, word32 &outLength);
 
@@ -17,15 +18,13 @@ void decryptData(const byte *data, word32 dataLength, ecc_key &key, std::string 
 
 void generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 &outLength);
 
-bool verifySignature(const byte *signature, word32 sigLength, const std::string &data, const ecc_key &key);
+bool verifySignature(const std::string &data, const ecc_key &key, const byte *signature, word32 sigLength);
 
-//Loads given key in PEM format (MUST include ---BEGIN header)
+// Loads given key in PEM format (MUST include ---BEGIN header)
 ecc_key loadKey(const char *keyPem, bool isPrivate);
 
 /*
  *  Following things modified in wolfssl
- *   #define WOLFSSL_NOSHA512_224 
- *   #undef HAVE___UINT128_T
  *   #define HAVE_ECC_ENCRYPT
  *   #define WOLFSSL_HAVE_SP_ECC
  *   #define HAVE_HKDF

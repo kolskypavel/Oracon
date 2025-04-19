@@ -23,8 +23,8 @@ bool startsWith(const std::string &text, const std::string &prefix);
 // Gets suffix after string str
 std::string getSuffix(const std::string &input, const std::string &str);
 
-// Gets prefix after string str
-std::string getPrefix(const std::string &input,const std::string & str);
+// Gets substring between two strings
+std::string getSubstr(const std::string &input,const std::string & start,const std::string & end);
 
 // Parses the values from a command in a format COM:<X>,<Y>
 std::pair<int, int> getValuesFromAt(const std::string & command);

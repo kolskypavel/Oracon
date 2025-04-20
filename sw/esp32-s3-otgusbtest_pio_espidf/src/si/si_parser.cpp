@@ -4,7 +4,6 @@ const static char *TAG = "SI PARSER";
 
 SIRecord parseSIdata(const uint8_t *data, size_t data_len)
 {
-  ESP_LOGI("PARSING", "Data len %d", data_len);
   uint16_t si_stationnumber = 0;
   uint32_t si_cardnumber = 0;
   uint8_t si_weeknumrelative = 0;
@@ -13,25 +12,25 @@ SIRecord parseSIdata(const uint8_t *data, size_t data_len)
   uint16_t si_h12timer = 0; // 12h timer in seconds
 
   // SIdoc CN1, CN0 2 bytes stations code number 1...999
-  si_stationnumber = data[4] << 8 | data[5];
+  si_stationnumber = data[3] << 8 | data[4];
 
   // SIdoc SN3...SN0 4 bytes SI-Card number
-  si_cardnumber = data[6] << 24 | data[7] << 16 | data[8] << 8 | data[9];
+  si_cardnumber = data[5] << 24 | data[6] << 16 | data[7] << 8 | data[8];
 
   // SIdoc TD 1 byte day-of-week/half day
   // bit5...bit4 4 week counter relative
-  si_weeknumrelative = (data[10] & 0b00110000) >> 4;
+  si_weeknumrelative = (data[9] & 0b00110000) >> 4;
   // bit3...bit1 day of week
-  si_weekday = (data[10] & 0b00001110) >> 1;
+  si_weekday = (data[9] & 0b00001110) >> 1;
   // bit0 24h counter (0-am, 1-pm)
-  si_fullday = data[10] & 0b00000001;
+  si_fullday = data[9] & 0b00000001;
 
   // SIdoc TH...TL 2 bytes 12h timer, binary
-  si_h12timer = data[11] << 8 | data[12];
+  si_h12timer = data[10] << 8 | data[11];
 
   // TSS 1 byte sub second values 1/256 sec
   // unused
-  // si_subsec = data[13];
+  // si_subsec = data[12];
 
   SIRecord record;
   record.cardNumber = si_cardnumber;

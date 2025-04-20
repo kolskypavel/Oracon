@@ -232,32 +232,45 @@ static void rs232_serial_task(void *pvParameter)
 
     if (rs232_serial.available())
     {
+      #ifdef TEST_RS232_VERBOSE
       ESP_LOGI("RS232", "Receiving data from r232 serial");
-      int i = 0;
+      #endif
+
+      int read = 0;
       while (rs232_serial.available())
       {
         // Prevent buffer overflow
-        if (i >= MAX_SI_DATA_SIZE)
+        if (read >= MAX_SI_DATA_SIZE)
         {
           finished = false;
           break;
         }
 
-        buffer[i] = rs232_serial.read();
-        i++;
-        delay(2);
+        buffer[read] = rs232_serial.read();
+        read++;
+        delay(3);
       }
-      if (finished)
+
+      #ifdef TEST_RS232_VERBOSE
+      ESP_LOGI("RS232", "Received data: %s", dataToHex(buffer, read).c_str());
+      #endif
+
+      if (finished &&
+          read >= SI_RECORD_SIZE &&
+          buffer[0] == BYTE_STX &&
+          buffer[1] == BYTE_PUNCH_DATA &&
+          buffer[18] == BYTE_ETX)
       {
-        SIRecord record = parseSIdata(buffer, i);
+        SIRecord record = parseSIdata(buffer, read);
 
-        ESP_LOGI("RS232", "Parsed SI-Card data from r232 serial:[O %d,S %d,C %d, T %s]",
-                 record.order,
+        #ifdef TEST_RS232_VERBOSE
+        ESP_LOGI("RS232", "Parsed SI-Card data from r232 serial:[S %d,C %d, T %s]",
                  record.stationNumber,
-                 record.order,
+                 record.cardNumber,
                  record.time.c_str());
-
-        //Check if data is somehow valid
+        #endif
+          
+        // Check if data is somehow valid - cardnumber should never be 0
         if (record.cardNumber != 0 && record.stationNumber != 0)
         {
           if (xQueueSend(punchQueue, &record, 0) != pdPASS)

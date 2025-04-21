@@ -5,6 +5,7 @@
 #include <string>
 #include "wolfssl.h"
 #include <wolfssl/wolfcrypt/ecc.h>
+#include "defines.h"
 
 // Current status of socket
 enum SocketStatus

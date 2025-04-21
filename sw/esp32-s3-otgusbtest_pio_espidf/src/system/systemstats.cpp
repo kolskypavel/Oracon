@@ -1,8 +1,10 @@
 #include "systemstats.h"
 
 void DeviceStatus::updateBatteryLevel()
-{
-    // TODO: read from device
+{ 
+    // TODO: fix with voltage divider
+    float voltage = analogRead(BATTERY_MEASURE_PORT);
+    
     this->battery = 0;
 }
 

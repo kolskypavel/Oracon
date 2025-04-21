@@ -16,7 +16,6 @@ Implementation of the ORacon protocol
 #include "defines.h"
 #include "secrets.h"
 
-
 // Writes the given raw data to serial
 void writeData(const std::string &data);
 
@@ -36,7 +35,7 @@ void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status);
 bool validateMessage(const ProtocolMessage &msg, DeviceStatus &status);
 
 // Gets a new message from the server
-ProtocolMessage getNewMessage(DeviceStatus &status);
+ProtocolMessage getNewMessage(DeviceStatus &status, bool validate);
 
 // Init message with data from status struct
 void initMessage(ProtocolMessage &msg, DeviceStatus &status);

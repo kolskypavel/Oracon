@@ -36,7 +36,7 @@ bool isConnected = false;
 bool usbReady = false;
 TaskHandle_t xHandle;
 
-StatusLED status_led, network_led;
+StatusLED status_led, signal_led, battery_led;
 QueueHandle_t punchQueue;
 
 // Timers
@@ -232,9 +232,9 @@ static void rs232_serial_task(void *pvParameter)
 
     if (rs232_serial.available())
     {
-      #ifdef TEST_RS232_VERBOSE
+#ifdef TEST_RS232_VERBOSE
       ESP_LOGI("RS232", "Receiving data from r232 serial");
-      #endif
+#endif
 
       int read = 0;
       while (rs232_serial.available())
@@ -251,9 +251,9 @@ static void rs232_serial_task(void *pvParameter)
         delay(3);
       }
 
-      #ifdef TEST_RS232_VERBOSE
+#ifdef TEST_RS232_VERBOSE
       ESP_LOGI("RS232", "Received data: %s", dataToHex(buffer, read).c_str());
-      #endif
+#endif
 
       if (finished &&
           read >= SI_RECORD_SIZE &&
@@ -263,13 +263,13 @@ static void rs232_serial_task(void *pvParameter)
       {
         SIRecord record = parseSIdata(buffer, read);
 
-        #ifdef TEST_RS232_VERBOSE
+#ifdef TEST_RS232_VERBOSE
         ESP_LOGI("RS232", "Parsed SI-Card data from r232 serial:[S %d,C %d, T %s]",
                  record.stationNumber,
                  record.cardNumber,
                  record.time.c_str());
-        #endif
-          
+#endif
+
         // Check if data is somehow valid - cardnumber should never be 0
         if (record.cardNumber != 0 && record.stationNumber != 0)
         {
@@ -283,6 +283,8 @@ static void rs232_serial_task(void *pvParameter)
     }
     delay(1);
   }
+  // Fail safe - task shouldn't return
+  vTaskDelete(nullptr);
 }
 
 void initTasks()
@@ -346,6 +348,8 @@ void initStatus()
 {
   currStatus.socketStatus = SocketStatus::SOCKET_OFF;
   currStatus.punchesReceived = 0;
+  currStatus.signal = 113;
+  currStatus.battery = 0;
 
   // If config values are stored in memory, use them, otherwise use the preset
   if (prefs.isKey("statusDelay"))
@@ -367,19 +371,25 @@ void initStatus()
 
 void setup()
 {
+
   // Init serial ports
   usb_serial.begin(115200);
   rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
   nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
-
+  
   delay(10);
   nbiot_serial.println();
 
   // INIT LEDS
   status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
-  network_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
+  signal_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
+  // battery_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
   status_led.setEnabled(true);
-  network_led.setEnabled(true);
+  signal_led.setEnabled(true);
+  // battery_led.setEnabled(true);
+
+  // INIT BATTERY MEASUREMET
+  pinMode(BATTERY_MEASURE_PORT, INPUT);
 
   // INIT TIMERS
   statusStartSeconds = getCurrentTime();
@@ -412,8 +422,7 @@ void setup()
 
 #ifdef TEST_WOLFCRYPT
   // wolfSSL_Debugging_ON();
-  test_encrypt_decrypt(currStatus);
-  test_signature(currStatus);
+  testCrypto(currStatus);
   delay(10000);
 #endif
 
@@ -427,6 +436,9 @@ void receivePunches()
   int count = 0;
   while (count < PUNCH_BUFFER_SIZE && xQueueReceive(punchQueue, &punches[count], 0) == pdPASS)
   {
+    // Set the order
+    currStatus.punchesReceived++;
+    punches[count].order = currStatus.punchesReceived;
     count++;
   }
   received = count;
@@ -437,11 +449,42 @@ void receivePunches()
 //   handle();
 //   vTaskDelay(pdMS_TO_TICKS(10));
 // }
+void setLeds()
+{
+  // Battery LED
+  if (currStatus.battery >= BATTERY_LEVEL_OK)
+  {
+    battery_led.setColorPreset(StatusLED::COLOR_PRESET::GREEN);
+  }
+  else if (currStatus.battery >= BATTERY_LEVEL_MEDIUM)
+  {
+    battery_led.setColorPreset(StatusLED::COLOR_PRESET::ORANGE);
+  }
+  else
+  {
+    battery_led.setColorPreset(StatusLED::COLOR_PRESET::RED);
+  }
+
+  // Signal LED
+  if (currStatus.signal <= SIGNAL_LEVEL_OK)
+  {
+    signal_led.setColorPreset(StatusLED::COLOR_PRESET::GREEN);
+  }
+  else if (currStatus.signal <= SIGNAL_LEVEL_MEDIUM)
+  {
+    signal_led.setColorPreset(StatusLED::COLOR_PRESET::ORANGE);
+  }
+  else
+  {
+    signal_led.setColorPreset(StatusLED::COLOR_PRESET::RED);
+  }
+}
 
 void loop()
 {
+
   status_led.show();
-  network_led.show();
+  signal_led.show();
 
   if (currStatus.runStatus != RunStatus::INIT_ERROR)
   {

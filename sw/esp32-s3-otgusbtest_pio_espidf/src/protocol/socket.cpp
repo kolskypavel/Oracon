@@ -3,7 +3,11 @@
 void writeData(const std::string &data)
 {
     nbiot_serial.println(data.c_str());
+
+#ifdef TEST_ORACON_SERIAL_VERBOSE
     ESP_LOGI("SOCKET", "Wrote data: %s", data.c_str());
+#endif
+
     delay(100);
 }
 
@@ -44,7 +48,10 @@ std::string receiveRawData()
         i++;
     }
 
+#ifdef TEST_ORACON_SERIAL_VERBOSE
     ESP_LOGI("DATA", "Received %ld B: %s", i, out.c_str());
+#endif
+
     trimmString(out); // Trim leading/trailing whitespaces
     return out;
 }
@@ -71,8 +78,8 @@ void initSocket(DeviceStatus &status)
         throw std::runtime_error("Failed to set buffered output");
     }
 
-    //TODO: set timeouts
-    
+    // TODO: set timeouts
+
     ESP_LOGI("CONNECT", "Socket init successful");
 }
 
@@ -142,6 +149,10 @@ void sendData(const byte *data, int dataLen, int socketId)
     {
         throw SocketException("Invalid response to send command:" + buffer);
     }
+    else if (startsWith(buffer, COMMAND_RESPONSE_CLOSE_SOCKET))
+    {
+        throw SocketException("Socket closed by server");
+    }
 
     // Send actual data
     writeData(hexData);
@@ -153,6 +164,10 @@ void sendData(const byte *data, int dataLen, int socketId)
     if (startsWith(buffer, COMMAND_RESPONSE_OK))
     {
         return;
+    }
+    else if (startsWith(buffer, COMMAND_RESPONSE_CLOSE_SOCKET))
+    {
+        throw SocketException("Socket closed by server");
     }
 
     // TODO: detailed error handling
@@ -185,26 +200,37 @@ std::string getData(DeviceStatus &status)
 
     if (startsWith(received, COMMAND_RESPONSE_INCOMMING_DATA))
     {
-        writeData(COMMAND_RECEIVE_DATA + SOCKET_READ_MODE + ",0");
-        received = receiveRawData();
+        std::string buffer, trimmed = "";
+        int remaining = 0;
 
-        // std::string sizeString = getSubstr(received, COMMAND_RESPONSE_INCOMMING_DATA, "\r\n");
-        // ESP_LOGI("GETDATA", "Data size str %s", sizeString.c_str());
-        // uint16_t dataSize = std::stoi(sizeString);
-        std::string trimmed = getSubstr(received, "\r\n", "\r\nOK"); // Trim the message indicator
-        trimmString(trimmed);
+        do
+        {
+            writeData(COMMAND_RECEIVE_DATA + SOCKET_READ_MODE + ",0," + std::to_string(SOCKET_READ_SIZE));
+            received = receiveRawData();
+            std::string header = getSubstr(received, COMMAND_RESPONSE_INCOMMING_DATA, "\r\n");
+            remaining = std::stoi(getSuffix(header, ","));
+
+            trimmed = getSubstr(received, "\r\n", "\r\nOK"); // Trim the message indicator
+            trimmString(trimmed);
+            buffer += trimmed;
+
+        } while (remaining > 0);
 
         std::string out;
         byte rawData[MAX_MESSAGE_SIZE];
-        hexToData(trimmed, rawData);
+        hexToData(buffer, rawData);
 
 #ifdef TEST_ORACON_NO_ENCRYPTION
-        out = std::string(reinterpret_cast<const char *>(rawData), trimmed.size() / 2);
+        out = std::string(reinterpret_cast<const char *>(rawData), buffer.size() / 2);
 #else
-        decryptData(rawData, (trimmed.size() / 2), status.key, out);
+        decryptData(rawData, (buffer.size() / 2), status.key, out);
 #endif
-        ESP_LOGI("GETDATA", "Sucessfully received data");
+        ESP_LOGI("GETDATA", "Sucessfully received data %s", out.c_str());
         return out;
+    }
+    else if (startsWith(received, COMMAND_RESPONSE_CLOSE_SOCKET))
+    {
+        throw SocketException("Socket closed by server");
     }
 
     throw std::invalid_argument("Invalid format when receiving data");
@@ -219,14 +245,14 @@ bool validateMessage(const ProtocolMessage &msg, DeviceStatus &status)
     return false;
 }
 
-ProtocolMessage getNewMessage(DeviceStatus &status)
+ProtocolMessage getNewMessage(DeviceStatus &status, bool validate)
 {
     std::string received = getData(status);
     ProtocolMessage msg = parseMessage(received);
-    ESP_LOGI("PARSER", "Successfuly parsed new message");
 
-    if (validateMessage(msg, status))
+    if (!validate || validateMessage(msg, status))
     {
+        ESP_LOGI("PARSER", "Successfuly received new message");
         return msg;
     }
     throw std::invalid_argument("Received message is invalid");
@@ -263,7 +289,10 @@ void authenticateDevice(DeviceStatus &status)
     ProtocolMessage msg;
     initMessage(msg, status);
     msg.type = ProtocolMessageType::TYPE_CONNECT;
+
+#ifndef TEST_ORACON_NO_SIGNATURE_VERIFICATION
     msg.data = generateSignatureData(status); // Add signature
+#endif
 
     sendMessage(msg, status);
     ESP_LOGI("AUTH", "Connect sent");
@@ -271,7 +300,7 @@ void authenticateDevice(DeviceStatus &status)
     try
     {
         // Wait for connect response
-        msg = getNewMessage(status);
+        msg = getNewMessage(status, false);
 
         if (msg.type == ProtocolMessageType::TYPE_CONNECT)
         {
@@ -283,19 +312,20 @@ void authenticateDevice(DeviceStatus &status)
             hexToData(signature, sigBytes);
 
 #ifdef TEST_ORACON_NO_SIGNATURE_VERIFICATION
-            sendAck(status);
             status.token = msg.token;
+            sendAck(status);
             status.socketStatus = SocketStatus::SOCKET_AUTHENTICATED;
+            ESP_LOGI("AUTH", "Sucessfully authenticated device");
             return;
 #else
             word32 sigLength = signature.size() / 2; // Hex encoded string - actual size is half
             // Server ID should be always 0
             if (verifySignature("0", status.serverKey, sigBytes, sigLength))
             {
-                ESP_LOGI("AUTH", "Sucessfully authenticated device");
                 status.token = msg.token;
                 sendAck(status);
                 status.socketStatus = SocketStatus::SOCKET_AUTHENTICATED;
+                ESP_LOGI("AUTH", "Sucessfully authenticated device");
                 return;
             }
             ESP_LOGE("AUTH", "Failed to verify server signature");
@@ -321,7 +351,7 @@ void sendStatus(DeviceStatus &status, Preferences prefs)
 
     sendMessage(msg, status);
 
-    msg = getNewMessage(status);
+    msg = getNewMessage(status, true);
 
     if (msg.type == ProtocolMessageType::TYPE_CONF)
     {
@@ -365,7 +395,7 @@ bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount)
     ESP_LOGI("PUNCH:", "Sending %d punches", punchCount);
     sendMessage(msg, status);
 
-    msg = getNewMessage(status);
+    msg = getNewMessage(status, true);
 
     // Get confirmation
     if (msg.type == ProtocolMessageType::TYPE_ACK)

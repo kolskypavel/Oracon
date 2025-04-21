@@ -12,7 +12,6 @@ std::string dataToHex(const byte *data, int dataLen)
 
 void hexToData(const std::string &in, byte *out)
 {
-    ESP_LOGI("HEX", "Parsing: %s", in.c_str());
     if (in.length() % 2 != 0)
     {
         throw std::invalid_argument("Invalid input string length or insufficient output buffer size");
@@ -42,7 +41,7 @@ bool startsWith(const std::string &text, const std::string &prefix)
 
 std::string getSuffix(const std::string &input, const std::string &str)
 {
-    size_t pos = input.find(str);
+    size_t pos = input.rfind(str);
     if (pos != std::string::npos)
     {
         return input.substr(pos + str.length());
@@ -107,25 +106,29 @@ std::string messageTypeToString(ProtocolMessageType type)
     }
 }
 
-ProtocolMessageType stringToMessageType(const std::string &typeString)
+ProtocolMessageType stringToMessageType(const std::string &stringType)
 {
-    if (typeString == "ACK")
+    if (stringType == "ACK")
     {
         return ProtocolMessageType::TYPE_ACK;
     }
-    else if (typeString == "NACK")
+    else if (stringType == "NACK")
     {
         return ProtocolMessageType::TYPE_NACK;
     }
-    else if (typeString == "STATUS")
+    else if (stringType == "CONNECT")
+    {
+        return ProtocolMessageType::TYPE_CONNECT;
+    }
+    else if (stringType == "STATUS")
     {
         return ProtocolMessageType::TYPE_STATUS;
     }
-    else if (typeString == "PUNCH")
+    else if (stringType == "PUNCH")
     {
         return ProtocolMessageType::TYPE_PUNCH;
     }
-    else if (typeString == "CONF")
+    else if (stringType == "CONF")
     {
         return ProtocolMessageType::TYPE_CONF;
     }
@@ -143,7 +146,14 @@ std::string messageToString(const ProtocolMessage &message)
     doc["type"] = messageTypeToString(message.type);
     doc["device"] = message.deviceId;
     doc["token"] = message.token;
-    doc["data"] = serialized(message.data);
+    if (message.data.empty())
+    {
+        JsonObject data = doc["data"].to<JsonObject>();
+    }
+    else
+    {
+        doc["data"] = serialized(message.data);
+    }
 
     std::string output;
     serializeJson(doc, output);
@@ -211,11 +221,22 @@ ProtocolMessage parseMessage(const std::string &message)
     DeserializationError error = deserializeJson(doc, message);
 
     std::string stringType = doc["type"] | "unknown";
-    std::string data = doc["data"] | "unknown";
     std::string token = doc["token"] | "unknown";
     int deviceId = doc["device"] | -1;
 
-    if (error || stringType == "unknown" || data == "unknown" || token == "unknown" || deviceId == -1)
+    if (!doc["data"].is<JsonObject>())
+    {
+        throw std::invalid_argument("Invalid or missing 'data' field in message");
+    }
+
+    JsonObject dataObject = doc["data"].as<JsonObject>();
+
+    std::string data;
+    serializeJson(dataObject, data);
+
+    ESP_LOGI("PARSE", "Type: %s, Token: %s, Device: %d, Data: %s", stringType.c_str(), token.c_str(), deviceId, data.c_str());
+
+    if (error || stringType == "unknown" || token == "unknown" || deviceId == -1)
     {
         throw std::invalid_argument("Failed to parse message");
     }
@@ -224,6 +245,7 @@ ProtocolMessage parseMessage(const std::string &message)
     msg.type = stringToMessageType(stringType);
     msg.deviceId = deviceId;
     msg.token = token;
+    msg.data = data;
 
     return msg;
 }

@@ -80,7 +80,7 @@ void test_signature()
 void testCrypto(const DeviceStatus &status)
 {
     setupCryptoTest();
-   test_encrypt_decrypt();
+    test_encrypt_decrypt();
     test_signature();
 
     wc_FreeRng(&rng);

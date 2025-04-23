@@ -18,7 +18,6 @@
  **********************/
 struct SIRecord
 {
-  uint32_t order;
   uint32_t cardNumber;
   uint16_t stationNumber;
   std::string time;

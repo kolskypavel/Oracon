@@ -14,6 +14,34 @@ std::string addPKCS7Padding(const std::string &data)
     return padded.append(padLen, static_cast<char>(padLen));
 }
 
+void removePKCS7Padding(std::string &data)
+{
+    if (data.empty())
+    {
+        throw std::invalid_argument("Data is empty, cannot remove padding");
+    }
+
+    // Get the value of the last byte
+    unsigned char padLen = static_cast<unsigned char>(data.back());
+
+    // Validate padding length
+    if (padLen == 0 || padLen > MESSAGE_BLOCK_SIZE)
+    {
+        throw std::invalid_argument("Invalid padding length");
+    }
+
+    for (size_t i = 0; i < padLen; ++i)
+    {
+        if (data[data.size() - 1 - i] != static_cast<char>(padLen))
+        {
+            throw std::invalid_argument("Invalid padding bytes");
+        }
+    }
+
+    // Remove padding
+    data.resize(data.size() - padLen);
+}
+
 void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &outLength)
 {
     int ret = 0;
@@ -78,6 +106,7 @@ void decryptData(const byte *data, word32 dataLength, ecc_key &privKey, std::str
     if (ret == 0)
     {
         out = std::string(reinterpret_cast<char *>(outBuffer), outLength);
+        removePKCS7Padding(out);
         return;
     }
     throw std::invalid_argument("DECRYPT: Failed to decrypt data, ret code: " + std::to_string(ret));

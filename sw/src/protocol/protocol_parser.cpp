@@ -180,7 +180,6 @@ std::string statusToString(const DeviceStatus &status)
 std::string punchToString(const SIRecord &record)
 {
     JsonDocument doc;
-    doc["order"] = record.order;
     doc["stationNumber"] = record.stationNumber;
     doc["cardNumber"] = record.cardNumber;
     doc["time"] = record.time;
@@ -197,14 +196,12 @@ std::string punchesToString(const SIRecord punches[], int size)
 
     for (int i = 0; i < size; ++i)
     {
-        ESP_LOGI("Parser:", "Punch: [O %d,S %d,C %d, T %s]",
-                 punches[i].order,
+        ESP_LOGI("Parser:", "Punch: [S %d,C %d, T %s]",
                  punches[i].stationNumber,
                  punches[i].cardNumber,
                  punches[i].time.c_str());
 
         JsonObject punchObj = punchesArray.add<JsonObject>();
-        punchObj["order"] = punches[i].order;
         punchObj["stationNumber"] = punches[i].stationNumber;
         punchObj["cardNumber"] = punches[i].cardNumber;
         punchObj["time"] = punches[i].time;
@@ -270,7 +267,11 @@ DeviceConfig stringToConfig(const std::string &data)
     DeviceConfig config;
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, data);
-    int statusDelay = doc["statusDelay"] | -1;
+    JsonObject configJson = doc["config"].as<JsonObject>();
+
+    int statusDelay = configJson["statusDelay"] | -1;
+
+    ESP_LOGI("CONF", "Parsing config message %s, %d", data.c_str(), statusDelay);
 
     // Error when parsing
     if (error || statusDelay == -1)

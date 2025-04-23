@@ -12,6 +12,8 @@
 
 std::string addPKCS7Padding(const std::string &data);
 
+void removePKCS7Padding(std::string &data);
+
 void encryptData(const std::string &data, ecc_key &key, byte *out, word32 &outLength);
 
 void decryptData(const byte *data, word32 dataLength, ecc_key &key, std::string &out);

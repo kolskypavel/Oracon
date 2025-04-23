@@ -371,7 +371,10 @@ void initStatus()
 
 void setup()
 {
-
+  //The watchdog timer is now disabled -> TODO: Enable
+  // esp_task_wdt_init(18, true);  // Timeout in seconds, panic enabled
+  // esp_task_wdt_add(NULL);
+ 
   // Init serial ports
   usb_serial.begin(115200);
   rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
@@ -438,7 +441,6 @@ void receivePunches()
   {
     // Set the order
     currStatus.punchesReceived++;
-    punches[count].order = currStatus.punchesReceived;
     count++;
   }
   received = count;
@@ -520,6 +522,10 @@ void loop()
         // STATUS?
         statusCurrSeconds = getCurrentTime();
 
+#ifdef TEST_MAIN_VERBOSE
+        ESP_LOGI("MAIN", "Status start %ld, curr %ld", statusStartSeconds, statusCurrSeconds);
+#endif
+
         if ((statusCurrSeconds - statusStartSeconds) > currStatus.config.statusDelay)
         {
           ESP_LOGI("STATUS", "Time period elapsed");
@@ -562,5 +568,5 @@ void loop()
       status_led.setColorPreset(StatusLED::ORANGE);
     }
   }
-  vTaskDelay(pdMS_TO_TICKS(3000));
+  delay(3);
 }

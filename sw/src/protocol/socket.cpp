@@ -268,7 +268,7 @@ void initMessage(ProtocolMessage &msg, DeviceStatus &status)
 
 void sendAck(DeviceStatus &status)
 {
-    ESP_LOGI("ACK:", "Sending ACK");
+    ESP_LOGI("ACK", "Sending ACK");
     ProtocolMessage msg;
     initMessage(msg, status);
     msg.type = ProtocolMessageType::TYPE_ACK;
@@ -277,7 +277,7 @@ void sendAck(DeviceStatus &status)
 
 void sendNack(DeviceStatus &status)
 {
-    ESP_LOGI("NACK:", "Sending NACK");
+    ESP_LOGI("NACK", "Sending NACK");
     ProtocolMessage msg;
     initMessage(msg, status);
     msg.type = ProtocolMessageType::TYPE_NACK;
@@ -357,7 +357,7 @@ void sendStatus(DeviceStatus &status, Preferences prefs)
 
     if (msg.type == ProtocolMessageType::TYPE_CONF)
     {
-        ESP_LOGI("STATUS:", "Received config message");
+        ESP_LOGI("STATUS", "Received config message");
         try
         {
             DeviceConfig config = stringToConfig(msg.data);
@@ -413,13 +413,13 @@ bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount)
 void closeSocket(DeviceStatus &status)
 {
     writeData(COMMAND_CLOSE);
-    std::string resp = receiveRawData();
-    if (startsWith(resp, COMMAND_RESPONSE_OK))
-    {
-        ESP_LOGI("SOCKET", "Socket closed successfuly");
-        return;
-    }
-    ESP_LOGE("SOCKET", "Failed to close socket");
+    // std::string resp = receiveRawData();
+    // if (startsWith(resp, COMMAND_RESPONSE_OK))
+    // {
+    //     ESP_LOGI("SOCKET", "Socket closed successfuly");
+    //     return;
+    // }
+    // ESP_LOGE("SOCKET", "Failed to close socket");
 }
 
 void getSignalStrength(DeviceStatus &status)

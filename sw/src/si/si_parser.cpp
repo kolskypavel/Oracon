@@ -47,7 +47,7 @@ SIRecord parseSIdata(const uint8_t *data, size_t data_len)
 
 SIRecord getTestSIRecord()
 {
-  SIRecord record = {0, 123456, 111, "12:22:20"};
+  SIRecord record = { 123456, 111, "12:22:20"};
   return record;
 }
 

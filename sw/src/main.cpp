@@ -30,6 +30,7 @@
 #include <wolfssl/wolfcrypt/logging.h>
 #include <esp_task_wdt.h>
 
+// USB handling
 SemaphoreHandle_t device_disconnected_sem;
 std::unique_ptr<CdcAcmDevice> vcp;
 bool isConnected = false;
@@ -45,14 +46,13 @@ unsigned long statusCurrSeconds;
 unsigned long measureStartSeconds;
 unsigned long measureCurrSeconds;
 
+// Punches sending
 SIRecord punches[PUNCH_BUFFER_SIZE];
 bool punchesSent = true;
 int received = 0;
 
-// STATUS
+// Status + prefs
 DeviceStatus currStatus;
-ProtocolMessage message;
-
 Preferences prefs;
 
 /**
@@ -61,6 +61,7 @@ Preferences prefs;
 bool rx_callback(const uint8_t *data, size_t data_len, void *arg)
 {
 
+#ifdef TEST_SI_SERIAL_VERBOSE
   // dump received data to serial
   Serial.println("Received data length: " + String(data_len));
   for (int i = 0; i < data_len; i++)
@@ -69,17 +70,36 @@ bool rx_callback(const uint8_t *data, size_t data_len, void *arg)
     Serial.print(",");
   }
   Serial.println();
+#endif
 
   // Check if received data matches SI data
   if (data[1] == BYTE_STX && data[2] == BYTE_PUNCH_DATA && data[19] == BYTE_ETX)
   {
-    ESP_LOGI("rx_callback", "Received SI-Card data from USB serial"); // TODO: verify checksum
-    parseSIdata(data, data_len);
+    SIRecord record = parseSIdata(data, data_len);
+
+#ifdef TEST_SI_SERIAL_VERBOSE
+    ESP_LOGI("USB", "Parsed SI-Card data from USB serial:[S %d,C %d, T %s]",
+             record.stationNumber,
+             record.cardNumber,
+             record.time.c_str());
+#endif
+
+    // Check if data is somehow valid - cardnumber should never be 0
+    if (record.cardNumber != 0 && record.stationNumber != 0)
+    {
+      if (xQueueSend(punchQueue, &record, 0) != pdPASS)
+      {
+        ESP_LOGE("USB", "Queue is full");
+        // TODO: signal with LED
+      }
+    }
   }
+#ifdef TEST_SI_SERIAL_VERBOSE
   else
   {
-    ESP_LOGI("rx_callback", "Received data is not SI-Card data");
+    ESP_LOGI("RS232", "Received data is not SI-Card data");
   }
+#endif
   return true;
 }
 
@@ -232,9 +252,6 @@ static void rs232_serial_task(void *pvParameter)
 
     if (rs232_serial.available())
     {
-#ifdef TEST_RS232_VERBOSE
-      ESP_LOGI("RS232", "Receiving data from r232 serial");
-#endif
 
       int read = 0;
       while (rs232_serial.available())
@@ -251,7 +268,7 @@ static void rs232_serial_task(void *pvParameter)
         delay(3);
       }
 
-#ifdef TEST_RS232_VERBOSE
+#ifdef TEST_SI_SERIAL_VERBOSE
       ESP_LOGI("RS232", "Received data: %s", dataToHex(buffer, read).c_str());
 #endif
 
@@ -263,7 +280,7 @@ static void rs232_serial_task(void *pvParameter)
       {
         SIRecord record = parseSIdata(buffer, read);
 
-#ifdef TEST_RS232_VERBOSE
+#ifdef TEST_SI_SERIAL_VERBOSE
         ESP_LOGI("RS232", "Parsed SI-Card data from r232 serial:[S %d,C %d, T %s]",
                  record.stationNumber,
                  record.cardNumber,
@@ -280,6 +297,12 @@ static void rs232_serial_task(void *pvParameter)
           }
         }
       }
+#ifdef TEST_SI_SERIAL_VERBOSE
+      else
+      {
+        ESP_LOGI("RS232", "Received data is not SI-Card data");
+      }
+#endif
     }
     delay(1);
   }
@@ -371,10 +394,10 @@ void initStatus()
 
 void setup()
 {
-  //The watchdog timer is now disabled -> TODO: Enable
-  // esp_task_wdt_init(18, true);  // Timeout in seconds, panic enabled
-  // esp_task_wdt_add(NULL);
- 
+  // The watchdog timer is now disabled -> TODO: Enable
+  //  esp_task_wdt_init(18, true);  // Timeout in seconds, panic enabled
+  //  esp_task_wdt_add(NULL);
+
   // Init serial ports
   usb_serial.begin(115200);
   rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
@@ -451,6 +474,7 @@ void receivePunches()
 //   handle();
 //   vTaskDelay(pdMS_TO_TICKS(10));
 // }
+
 void setLeds()
 {
   // Battery LED

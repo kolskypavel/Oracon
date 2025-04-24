@@ -6,8 +6,9 @@
 ecc_key key;
 WC_RNG rng;
 
-void setupCryptoTest()
+void setupCryptoTest(const DeviceStatus &status)
 {
+#ifdef TEST_WOLFCRYPT_GENERATE_KEY
     if (wc_ecc_init(&key) != 0)
     {
         throw std::invalid_argument("Failed to initialize ECC key");
@@ -22,6 +23,9 @@ void setupCryptoTest()
         wc_FreeRng(&rng);
         throw std::invalid_argument("Failed to generate ECC key");
     }
+#else
+    key = status.key;
+#endif
 }
 void test_encrypt_decrypt()
 {
@@ -33,6 +37,7 @@ void test_encrypt_decrypt()
     try
     {
         encryptData(data, key, out, outLength);
+        ESP_LOGI("CRYPTO TEST", "Successfully encrypted data");
 
         decryptData(out, outLength, key, decrypted);
     }
@@ -79,7 +84,7 @@ void test_signature()
 
 void testCrypto(const DeviceStatus &status)
 {
-    setupCryptoTest();
+    setupCryptoTest(status);
     test_encrypt_decrypt();
     test_signature();
 

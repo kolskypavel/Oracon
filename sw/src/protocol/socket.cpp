@@ -15,7 +15,7 @@ std::string receiveRawData()
 {
     long i = 0;
     int timeout = 0;
-    std::string out;
+    std::string out = "";
 
     while (nbiot_serial.available() == 0)
     {
@@ -80,7 +80,18 @@ void initSocket(DeviceStatus &status)
         throw std::runtime_error("Failed to set buffered output");
     }
 
-    // TODO: set timeouts
+    #ifndef TEST_ORACON_NO_TIMEOUT
+    std::string data = COMMAND_SET_TIMEOUT;
+    data += std::to_string(SOCKET_OPEN_TIMEOUT * 1000) +
+            "," + std::to_string(SOCKET_CONNECT_TIMEOUT * 1000) +
+            "," + std::to_string(SOCKET_READ_TIMEOUT * 1000);
+
+    writeData(data);
+    if (!startsWith(resp, COMMAND_RESPONSE_OK))
+    {
+        throw std::runtime_error("Failed to set timeouts");
+    }
+    #endif
 
     ESP_LOGI("CONNECT", "Socket init successful");
 }
@@ -114,8 +125,7 @@ void connectSocket(DeviceStatus &status)
     connect += SERVER_PORT;
 
     writeData(connect);
-    delay(1000);
-    delay(CONNECT_TIMEOUT * 1000);
+    delay(SOCKET_CONNECT_TIMEOUT * 1000);
     resp = receiveRawData();
 
     std::pair<int, int> values = getValuesFromAt(resp);
@@ -159,7 +169,6 @@ void sendData(const byte *data, int dataLen, int socketId)
     // Send actual data
     writeData(hexData);
 
-    buffer = "";
     buffer = receiveRawData();
 
     // Wait for positive reply

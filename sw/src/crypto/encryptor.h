@@ -33,5 +33,6 @@ ecc_key loadKey(const char *keyPem, bool isPrivate);
  *   #define WOLFCRYPT_ONLY
  *   #define WOLFSSL_PUB_PEM_TO_DER
  *   # logging function disabled
- *   Undef SHAKE and SHA 224 in options.h
+ *   #define WOLFSSL_VALIDATE_ECC_IMPORT
+ *   #define HAVE_ECC_SECPR2 
  */

@@ -2,13 +2,14 @@
 #define nbiot_serial Serial1
 #define rs232_serial Serial2
 
-//PORTS
-#define RXD1 18
-#define TXD1 17
+// PORTS
+#define RX_NBIOT 16
+#define TX_NBIOT 15
 
-#define RXD2 16
-#define TXD2 15
+#define RX_RS232 18
+#define TX_RS232 17 
 
+// LEDS
 #define MILLIS_TO_MICROS(a) (int)(a * 1000)
 #define STATUS_LED_FLICK_TIME_MS 100
 #define STATUS_LED_ERROR_TIME_MS 500
@@ -30,14 +31,14 @@
 #define NB_IOT_SERIAL_BAUDRATE 115200
 #define SI_RS232_SERIAL_BAUDRATE 4800
 
-//BATTERY
+// BATTERY
 #define MAX_BATTERY_LEVEL 3.7
 #define BATTERY_MEASURE_PORT 12
 
 #define BATTERY_LEVEL_OK 60
 #define BATTERY_LEVEL_MEDIUM 30
 
-//SIGNAL
+// SIGNAL
 #define SIGNAL_LEVEL_OK 70
 #define SIGNAL_LEVEL_MEDIUM 100
 
@@ -49,9 +50,6 @@
 #define PUNCH_BUFFER_SIZE 5
 
 // CRYPTO
-#define HAVE_ECC
-#define HAVE_ECC_ENCRYPT
-
 #define ECC_KEY_SIZE 32
 #define MESSAGE_BLOCK_SIZE 128
 #define ECC_KEY_CURVE ECC_SECP256K1
@@ -60,9 +58,10 @@
 #define MAX_DER_BUFF_SIZE 512
 
 // SOCKET
+#define SOCKET_OPEN_TIMEOUT 5
+#define SOCKET_CONNECT_TIMEOUT 10
 #define SOCKET_READ_TIMEOUT 15
-#define CONNECT_TIMEOUT 10
-#define SOCKET_READ_MODE "2"  //2- ascii, 3 - hex
+#define SOCKET_READ_MODE "2" // 2 - ascii, 3 - hex
 #define SOCKET_READ_SIZE 200
 
 // LOGIC
@@ -74,12 +73,14 @@
 #define MAX_SI_DATA_SIZE 50
 #define SI_RECORD_SIZE 19
 
-//TESTING
-//#define LIMIT_NB_IOT_SERIAL
-#define TEST_WOLFCRYPT
-//#define TEST_WOLFCRYPT_GENERATE_KEY
-#define TEST_ORACON_SERIAL_VERBOSE
-#define TEST_ORACON_NO_ENCRYPTION
-//#define TEST_ORACON_NO_SIGNATURE_VERIFICATION
-#define TEST_SI_SERIAL_VERBOSE
-#define TEST_MAIN_VERBOSE
+// TESTING
+// #define LIMIT_NB_IOT_SERIAL                    // Checks for max length of received message
+#define NO_SETUP_TIMEOUT                          // Delay the device after startup to load NB-IOT module
+#define TEST_WOLFCRYPT                            // Perform test of encrypt/decrypt and signing
+//#define TEST_WOLFCRYPT_GENERATE_KEY             // Generates a key for the test
+#define TEST_ORACON_SERIAL_VERBOSE                // Prints the received / sent data to a serial
+#define TEST_ORACON_NO_ENCRYPTION                 // Runs unencrypted verison of protocol
+// #define TEST_ORACON_NO_SIGNATURE_VERIFICATION  // Doesn't verify signature from the server
+#define TEST_NO_SI_TASKS                          // Don't start the tasks for receiving SI data
+#define TEST_SI_SERIAL_VERBOSE                    // Print info from SI serial reads
+#define TEST_ORACON_NO_TIMEOUT                    // Don't timeout on the socket connection

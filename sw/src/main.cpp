@@ -72,10 +72,10 @@ bool rx_callback(const uint8_t *data, size_t data_len, void *arg)
   Serial.println();
 #endif
 
-  // Check if received data matches SI data
+  // Check if received data matches SI data - first byte is always FF (skip)
   if (data[1] == BYTE_STX && data[2] == BYTE_PUNCH_DATA && data[19] == BYTE_ETX)
   {
-    SIRecord record = parseSIdata(data, data_len);
+    SIRecord record = parseSIdata(data + 1, data_len);
 
 #ifdef TEST_SI_SERIAL_VERBOSE
     ESP_LOGI("USB", "Parsed SI-Card data from USB serial:[S %d,C %d, T %s]",
@@ -155,30 +155,32 @@ void connectDevice()
       .bParityType = ESP_USB_SERIAL_PARITY,
       .bDataBits = ESP_USB_SERIAL_DATA_BITS,
   };
-  // You don't need to know the device's VID and PID. Just plug in any device
-  // and the VCP service will pick correct (already registered) driver for the
-  // device
-  Serial.println("Opening any VCP device...");
+// You don't need to know the device's VID and PID. Just plug in any device
+// and the VCP service will pick correct (already registered) driver for the device
+#ifdef TEST_SI_SERIAL_VERBOSE
+  ESP_LOGI("USB", "Opening any VCP device...");
+#endif
   vcp = std::unique_ptr<CdcAcmDevice>(esp_usb::VCP::open(&dev_config));
 
   if (vcp == nullptr)
   {
-    Serial.println("Failed to open VCP device, retrying...");
+#ifdef TEST_SI_SERIAL_VERBOSE
+    ESP_LOGW("USB", "Failed to open VCP device, retrying...");
+#endif
     return;
   }
 
   vTaskDelay(10);
 
-  Serial.println("USB detected");
-
   if (vcp->line_coding_set(&line_coding) == ESP_OK)
   {
-    Serial.println("USB Connected");
     isConnected = true;
     uint16_t vid = esp_usb::getVID();
     uint16_t pid = esp_usb::getPID();
-    Serial.printf("USB device with VID: 0x%04X (%s), PID: 0x%04X (%s) found\n",
-                  vid, esp_usb::getVIDString(), pid, esp_usb::getPIDString());
+#ifdef TEST_SI_SERIAL_VERBOSE
+    ESP_LOGW("USB", "Device with VID: 0x%04X (%s), PID: 0x%04X (%s) found\n",
+             vid, esp_usb::getVIDString(), pid, esp_usb::getPIDString());
+#endif
     xSemaphoreTake(device_disconnected_sem, portMAX_DELAY);
     vTaskDelay(10);
 
@@ -186,7 +188,9 @@ void connectDevice()
   }
   else
   {
-    Serial.println("USB device not identified");
+#ifdef TEST_SI_SERIAL_VERBOSE
+    ESP_LOGW("USB", "USB device not identified");
+#endif
   }
 }
 
@@ -206,33 +210,6 @@ static void esp_usb_serial_connection_task(void *pvParameter)
   }
   /* A task should NEVER return */
   vTaskDelete(NULL);
-}
-
-void handle()
-{
-  if (!usbReady)
-    return;
-  if (Serial.available())
-  {
-    size_t size = Serial.available();
-    uint8_t *data = (uint8_t *)malloc(size);
-    if (data)
-    {
-      size = Serial.readBytes(data, size);
-      if (vcp && vcp->tx_blocking(data, size) == ESP_OK)
-      {
-        if (!(vcp && vcp->set_control_line_state(true, true) == ESP_OK))
-        {
-          Serial.println("Failed set line");
-        }
-      }
-      else
-      {
-        Serial.println("Failed to send message");
-      }
-      free(data);
-    }
-  }
 }
 
 static void rs232_serial_task(void *pvParameter)
@@ -321,49 +298,34 @@ void initTasks()
     throw std::runtime_error("Failed to init RS232 task");
   }
 
-  //  res = xTaskCreatePinnedToCore(
-  //   esp_usb_serial_connection_task, "esp_usb_serial_task",
-  //   ESP_USB_SERIAL_TASK_SIZE, NULL, ESP_USB_SERIAL_TASK_PRIORITY, &xHandle,
-  //   ESP_USB_SERIAL_TASK_CORE);
+  if (ESP_OK != usb_serial_init())
+  {
+    throw std::runtime_error("USB initialization failed");
+  }
+  else
+  {
+    if (ESP_OK != usb_serial_create_task())
+    {
+      throw std::runtime_error("USB serial task failed");
+    }
 
-  //   if (res != pdPASS || !xHandle)
-  //   {
-  //     throw std::runtime_error("Failed to init USB task");
-  //   }
+    device_disconnected_sem = xSemaphoreCreateBinary();
+    if (device_disconnected_sem == NULL)
+    {
+      throw std::runtime_error("USB semaphore init failed");
+    }
+    res = xTaskCreatePinnedToCore(
+        esp_usb_serial_connection_task, "esp_usb_serial_task",
+        ESP_USB_SERIAL_TASK_SIZE, NULL, ESP_USB_SERIAL_TASK_PRIORITY, &xHandle,
+        ESP_USB_SERIAL_TASK_CORE);
 
-  // if (ESP_OK != usb_serial_init())
-  // {
-  //   Serial.println("Initialization failed");
-  // }
-  // else
-  // {
-  //   if (ESP_OK != usb_serial_create_task())
-  //   {
-  //     Serial.println("Task Creation failed");
-  //   }
-  //   else
-  //   {
-  //     Serial.println("Success");
-  //   }
-  //   device_disconnected_sem = xSemaphoreCreateBinary();
-  //   if (device_disconnected_sem == NULL)
-  //   {
-  //     Serial.println("Semaphore creation failed");
-  //     return;
-  //   }
-  //   BaseType_t res = xTaskCreatePinnedToCore(
-  //       esp_usb_serial_connection_task, "esp_usb_serial_task",
-  //       ESP_USB_SERIAL_TASK_SIZE, NULL, ESP_USB_SERIAL_TASK_PRIORITY, &xHandle,
-  //       ESP_USB_SERIAL_TASK_CORE);
+    if (res != pdPASS || !xHandle)
+    {
+      throw std::runtime_error("USB connection task init failed");
+    }
+  }
+  usbReady = true;
 
-  //   if (res != pdPASS || !xHandle)
-  //   {
-  //     Serial.println("Task creation failed");
-  //     return;
-  //   }
-  //   Serial.println("USB Serial Connection Task created successfully");
-  // }
-  // usbReady = true;
   ESP_LOGI("TASKS", "Tasks init successfuly");
 }
 
@@ -400,8 +362,8 @@ void setup()
 
   // Init serial ports
   usb_serial.begin(115200);
-  rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RXD1, TXD1);
-  nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RXD2, TXD2);
+  rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RX_RS232, TX_RS232);
+  nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RX_NBIOT, TX_NBIOT);
 
   delay(10);
   nbiot_serial.println();
@@ -432,8 +394,10 @@ void setup()
     // INIT STATUS
     initStatus();
 
-    // INIT TASKS
+// INIT TASKS
+#ifndef TEST_NO_SI_TASKS
     initTasks();
+#endif
 
     // INIT SOCKET
     initSocket(currStatus);
@@ -452,8 +416,10 @@ void setup()
   delay(10000);
 #endif
 
-  // Intial delay for NB-IOT module
-  // vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
+// Intial delay for NB-IOT module
+#ifndef NO_SETUP_TIMEOUT
+  vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
+#endif
 }
 
 // Receives punches till no punches are left or the buffer is full
@@ -468,12 +434,6 @@ void receivePunches()
   }
   received = count;
 }
-
-// if (usbReady)
-// {
-//   handle();
-//   vTaskDelay(pdMS_TO_TICKS(10));
-// }
 
 void setLeds()
 {
@@ -508,7 +468,7 @@ void setLeds()
 
 void loop()
 {
-
+  // battery_led.show();
   status_led.show();
   signal_led.show();
 
@@ -545,10 +505,6 @@ void loop()
         }
         // STATUS?
         statusCurrSeconds = getCurrentTime();
-
-#ifdef TEST_MAIN_VERBOSE
-        ESP_LOGI("MAIN", "Status start %ld, curr %ld", statusStartSeconds, statusCurrSeconds);
-#endif
 
         if ((statusCurrSeconds - statusStartSeconds) > currStatus.config.statusDelay)
         {

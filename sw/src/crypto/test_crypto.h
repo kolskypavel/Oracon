@@ -23,6 +23,13 @@ void setupCryptoTest(const DeviceStatus &status)
         wc_FreeRng(&rng);
         throw std::invalid_argument("Failed to generate ECC key");
     }
+
+    if (wc_ecc_set_rng(&key, &rng))
+    {
+        wc_FreeRng(&rng);
+        wc_ecc_free(&key);
+        throw std::invalid_argument("Failed to set RNG for a key");
+    }
 #else
     key = status.key;
 #endif
@@ -89,4 +96,5 @@ void testCrypto(const DeviceStatus &status)
     test_signature();
 
     wc_FreeRng(&rng);
+    wc_ecc_free(&key);
 }

@@ -18,8 +18,8 @@
  **********************/
 struct SIRecord
 {
-  uint32_t cardNumber;
-  uint16_t stationNumber;
+  uint32_t cardNumber = 0;
+  uint16_t stationNumber = 0;
   std::string time;
 };
 /**********************

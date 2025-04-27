@@ -53,8 +53,6 @@ void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
     {
         throw std::invalid_argument("ENCRYPT: Failed to init RNG");
     }
-
-    byte outBuffer[MAX_MESSAGE_SIZE];
     ecc_key ephemeralKey;
 
     // Init key
@@ -84,7 +82,7 @@ void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
         throw std::invalid_argument("ENCRYPT: Failed to set RNG for a key");
     }
 
-    ret = wc_ecc_encrypt(&ephemeralKey, &pubKey, reinterpret_cast<const byte *>(padded.data()), padded.size(), outBuffer, &outLength, nullptr);
+    ret = wc_ecc_encrypt(&ephemeralKey, &pubKey, reinterpret_cast<const byte *>(padded.data()), padded.size(), out, &outLength, nullptr);
     if (ret == 0)
     {
         // Success

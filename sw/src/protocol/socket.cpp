@@ -198,7 +198,7 @@ void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
     byte buf[MAX_MESSAGE_SIZE];
     word32 encSize;
 
-    encryptData(data, status.key, buf, encSize);
+    encryptDataRsa(data, status.privateKey, buf, encSize);
     sendData(buf, encSize, status.socketId);
 #endif
 
@@ -234,7 +234,7 @@ std::string getData(DeviceStatus &status)
 #ifdef TEST_ORACON_NO_ENCRYPTION
         out = std::string(reinterpret_cast<const char *>(rawData), buffer.size() / 2);
 #else
-        decryptData(rawData, (buffer.size() / 2), status.key, out);
+        decryptDataRsa(rawData, (buffer.size() / 2), status.privateKey, out);
 #endif
         ESP_LOGI("GETDATA", "Sucessfully received data %s", out.c_str());
         return out;

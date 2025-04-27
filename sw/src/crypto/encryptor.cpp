@@ -42,7 +42,7 @@ void removePKCS7Padding(std::string &data)
     data.resize(data.size() - padLen);
 }
 
-void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &outLength)
+void encryptDataRsa(const std::string &data, RsaKey &key, byte *out, word32 &outLength)
 {
     int ret = 0;
     WC_RNG rng;
@@ -53,64 +53,103 @@ void encryptData(const std::string &data, ecc_key &pubKey, byte *out, word32 &ou
     {
         throw std::invalid_argument("ENCRYPT: Failed to init RNG");
     }
-    ecc_key ephemeralKey;
+    // Encrypt the data using RSA
+    ret = wc_RsaPublicEncrypt(reinterpret_cast<const byte *>(data.data()), data.size(), out, outLength, &key, &rng);
+    wc_FreeRng(&rng);
 
-    // Init key
-    ret = wc_ecc_init(&ephemeralKey);
-    if (ret != 0)
+    if (ret < 0)
     {
-        throw std::invalid_argument("ENCRYPT: Failed to init ephemeral key, ret code: " + std::to_string(ret));
+        throw std::invalid_argument("ENCRYPT: RSA encryption failed, ret code: " + std::to_string(ret));
+    }
+}
+
+void decryptDataRsa(const byte *data, word32 dataLength, RsaKey &key, std::string &out)
+{
+    byte outBuffer[MAX_MESSAGE_SIZE];
+    word32 outLength = 0;
+    int ret = 0;
+
+    ret = wc_RsaPrivateDecrypt(data, dataLength, outBuffer, outLength, &key);
+    if (ret < 0)
+    {
+        throw std::invalid_argument("DECRYPT: RSA decryption failed, ret code: " + std::to_string(ret));
     }
 
-    // Make new 256b ephemeral key
-    ret = wc_ecc_make_key(&rng, 32, &ephemeralKey);
+    out.assign(reinterpret_cast<char *>(outBuffer), ret);
+}
+
+void encryptDataAes(const std::string &data, Aes &key, byte *out, word32 &outLength)
+{
+    int ret = 0;
+    WC_RNG rng;
+
+    ret = wc_InitRng(&rng);
+    if (ret != 0)
+    {
+        throw std::invalid_argument("AES ENCRYPT: Failed to init RNG");
+    }
+
+    byte iv[AES_BLOCK_SIZE];
+
+    ret = wc_RNG_GenerateBlock(&rng, iv, AES_BLOCK_SIZE);
     if (ret != 0)
     {
         wc_FreeRng(&rng);
-        wc_ecc_free(&ephemeralKey);
-        throw std::invalid_argument("ENCRYPT: Failed to make ephemeral key, ret code: " + std::to_string(ret));
+        throw std::invalid_argument("AES ENCRYPT: Failed to generate IV");
     }
 
-    // TODO: Padding
+    ret = wc_AesSetIV(&key, iv);
+    if (ret != 0)
+    {
+        wc_FreeRng(&rng);
+        throw std::invalid_argument("AES ENCRYPT: Failed to set IV");
+    }
+    // Add iv to the message
+    memcpy(iv, out, AES_BLOCK_SIZE);
+
     std::string padded = addPKCS7Padding(data);
 
-    ret = wc_ecc_set_rng(&ephemeralKey, &rng);
+    outLength = padded.size();
+    ret = wc_AesCbcEncrypt(&key, out + AES_BLOCK_SIZE, reinterpret_cast<const byte *>(padded.data()), padded.size());
+    wc_FreeRng(&rng);
+
     if (ret != 0)
     {
-        wc_FreeRng(&rng);
-        wc_ecc_free(&ephemeralKey);
-        throw std::invalid_argument("ENCRYPT: Failed to set RNG for a key");
+        throw std::invalid_argument("AES ENCRYPT: Failed to encrypt data, ret code: " + std::to_string(ret));
     }
-
-    ret = wc_ecc_encrypt(&ephemeralKey, &pubKey, reinterpret_cast<const byte *>(padded.data()), padded.size(), out, &outLength, nullptr);
-    if (ret == 0)
-    {
-        // Success
-        wc_FreeRng(&rng);
-        wc_ecc_free(&ephemeralKey);
-        return;
-    }
-    throw std::invalid_argument("ENCRYPT: Failed to encrypt given data, ret code: " + std::to_string(ret));
 }
 
-void decryptData(const byte *data, word32 dataLength, ecc_key &privKey, std::string &out)
+void decryptDataAes(const byte *data, word32 dataLength, Aes &key, std::string &out)
 {
-
-    byte outBuffer[MAX_MESSAGE_SIZE];
-    word32 outLength;
-
-    // The public key should be included in message - https://www.wolfssl.com/forums/topic1926-confusion-on-wceccencrypt-and-wceccdecrypt.html
-    int ret = wc_ecc_decrypt(&privKey, nullptr, reinterpret_cast<const byte *>(data), dataLength, outBuffer, &outLength, NULL);
-    if (ret == 0)
+    // Get first bytes as iv
+    if (dataLength <= AES_BLOCK_SIZE)
     {
-        out = std::string(reinterpret_cast<char *>(outBuffer), outLength);
-        removePKCS7Padding(out);
-        return;
+        throw std::invalid_argument("AES DECRYPT: Data length is too short to contain IV and ciphertext");
     }
-    throw std::invalid_argument("DECRYPT: Failed to decrypt data, ret code: " + std::to_string(ret));
+
+    byte iv[AES_BLOCK_SIZE];
+    memcpy(iv, data, AES_BLOCK_SIZE);
+
+    int ret = wc_AesSetIV(&key, iv);
+    if (ret != 0)
+    {
+        throw std::invalid_argument("AES DECRYPT: Failed to set IV");
+    }
+
+    byte decrypted[MAX_MESSAGE_SIZE];
+    word32 decryptedLength = dataLength - AES_BLOCK_SIZE;
+
+    ret = wc_AesCbcDecrypt(&key, decrypted, data + AES_BLOCK_SIZE, decryptedLength);
+    if (ret != 0)
+    {
+        throw std::invalid_argument("AES DECRYPT: Failed to decrypt data, ret code: " + std::to_string(ret));
+    }
+
+    out = std::string(reinterpret_cast<char *>(decrypted), decryptedLength);
+    removePKCS7Padding(out);
 }
 
-void generateSignature(const std::string &data, const ecc_key &privKey, byte *signature, word32 &outLength)
+void generateSignature(const std::string &data, const RsaKey &privKey, byte *signature, word32 &outLength)
 {
     int ret = 0;
     WC_RNG rng;
@@ -123,7 +162,7 @@ void generateSignature(const std::string &data, const ecc_key &privKey, byte *si
         throw std::invalid_argument("SIGNATURE: Failed to init RNG, ret code: " + std::to_string(ret));
     }
 
-    ret = wc_SignatureGenerate(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, &outLength, &privKey, sizeof(privKey), &rng);
+    ret = wc_SignatureGenerate(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_RSA, reinterpret_cast<const byte *>(data.data()), data.size(), signature, &outLength, &privKey, sizeof(privKey), &rng);
     wc_FreeRng(&rng);
     if (ret == 0)
     {
@@ -132,9 +171,9 @@ void generateSignature(const std::string &data, const ecc_key &privKey, byte *si
     throw std::invalid_argument("SIGNATURE: Failed to generate signature ret code: " + std::to_string(ret));
 }
 
-bool verifySignature(const std::string &data, const ecc_key &key, const byte *signature, word32 sigLength)
+bool verifySignature(const std::string &data, const RsaKey &key, const byte *signature, word32 sigLength)
 {
-    int ret = wc_SignatureVerify(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_ECC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, sigLength, &key, sizeof(key));
+    int ret = wc_SignatureVerify(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_RSA, reinterpret_cast<const byte *>(data.data()), data.size(), signature, sigLength, &key, sizeof(key));
 
     if (ret == 0)
     {
@@ -144,16 +183,16 @@ bool verifySignature(const std::string &data, const ecc_key &key, const byte *si
     return false;
 }
 
-ecc_key loadKey(const char *keyPem, bool isPrivate)
+RsaKey loadKey(const char *keyPem, bool isPrivate)
 {
-    ecc_key key;
+    RsaKey key;
     int ret = 0;
     word32 idx = 0;
 
     byte derBuff[MAX_DER_BUFF_SIZE];
 
     // Initialize the ECC key structure
-    ret = wc_ecc_init(&key);
+    ret = wc_InitRsaKey(&key, nullptr);
     if (ret != 0)
     {
         throw std::runtime_error("Failed to initialize ECC key");
@@ -176,19 +215,20 @@ ecc_key loadKey(const char *keyPem, bool isPrivate)
 
     if (isPrivate)
     {
-        // Load the key
-        ret = wc_EccPrivateKeyDecode(derBuff, &idx, &key, ret);
+        // Load the private RSA key
+        ret = wc_RsaPrivateKeyDecode(derBuff, &idx, &key, ret);
         if (ret != 0)
         {
-            throw std::runtime_error("Failed to decode private key from DER, ret code: " + std::to_string(ret));
+            throw std::runtime_error("Failed to decode private RSA key from DER, ret code: " + std::to_string(ret));
         }
     }
     else
     {
-        ret = wc_EccPublicKeyDecode(derBuff, &idx, &key, ret);
+        // Load the public RSA key
+        ret = wc_RsaPublicKeyDecode(derBuff, &idx, &key, ret);
         if (ret != 0)
         {
-            throw std::runtime_error("Failed to decode public key from DER, ret code: " + std::to_string(ret));
+            throw std::runtime_error("Failed to decode public RSA key from DER, ret code: " + std::to_string(ret));
         }
     }
     return key;

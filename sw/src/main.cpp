@@ -347,7 +347,7 @@ void initStatus()
   }
 
   currStatus.deviceId = DEVICE_ID;
-  currStatus.key = loadKey(DEVICE_PRIVATE_KEY, true);
+  currStatus.privateKey = loadKey(DEVICE_PRIVATE_KEY, true);
   currStatus.publicKey = loadKey(DEVICE_PUBLIC_KEY, false);
   currStatus.serverKey = loadKey(SERVER_PUBLIC_KEY, false);
 

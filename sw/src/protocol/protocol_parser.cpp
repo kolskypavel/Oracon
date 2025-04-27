@@ -294,7 +294,7 @@ std::string generateSignatureData(const DeviceStatus &status)
     byte out[MAX_SIGNATURE_SIZE];
     word32 outLen = MAX_SIGNATURE_SIZE;
 
-    generateSignature(sigData, status.key, out, outLen);
+    generateSignature(sigData, status.privateKey, out, outLen);
     JsonDocument doc;
     doc["signature"] = dataToHex(out, outLen);
 

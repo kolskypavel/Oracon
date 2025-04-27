@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include <string>
 #include "wolfssl.h"
-#include <wolfssl/wolfcrypt/ecc.h>
+#include <wolfssl/wolfcrypt/rsa.h> 
+#include <wolfssl/wolfcrypt/aes.h> 
 #include "defines.h"
 
 // Current status of socket
@@ -50,9 +51,10 @@ public:
 
     // Static fields
     uint16_t deviceId;
-    ecc_key key;
-    ecc_key publicKey;
-    ecc_key serverKey;
+    Aes aesKey;
+    RsaKey privateKey;
+    RsaKey publicKey;
+    RsaKey serverKey;
     
     // Get the current battery level - read from voltage
     void updateBatteryLevel();

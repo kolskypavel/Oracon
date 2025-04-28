@@ -35,8 +35,6 @@ std::pair<int, int> getValuesFromAt(const std::string & command);
  */
 ProtocolMessage parseMessage(const std::string &message);
 
-bool validateMessage(const ProtocolMessage &message, DeviceStatus &status);
-
 // Serialize message to string
 std::string messageToString(const ProtocolMessage &message);
 
@@ -58,8 +56,8 @@ std::string punchToString(const SIRecord &record);
 // Serializes punches to string
 std::string punchesToString(const SIRecord punches[], int size);
 
-// Deserialize sign with signature
-std::string dataToSignature(const std::string &data);
+// Deserialize sign with signature and key
+std::pair<std::string, std::string> dataToSignatureAndKey(const std::string &data);
 
 // Deserialize string to config object
 DeviceConfig stringToConfig(const std::string &data);

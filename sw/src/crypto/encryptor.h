@@ -9,19 +9,20 @@
 #include <wolfssl/wolfcrypt/asn_public.h>
 #include <wolfssl/wolfcrypt/rsa.h>
 #include <wolfssl/wolfcrypt/aes.h>
+#include <wolfssl/wolfcrypt/hmac.h>
 #include "defines.h"
 
 std::string addPKCS7Padding(const std::string &data);
 
 void removePKCS7Padding(std::string &data);
 
-void encryptDataRsa(const std::string &data, RsaKey &key, byte *out, word32 &outLength);
+void decryptDataRsa(const byte *data, word32 dataLength, RsaKey &key, byte *out, word32 outLength);
 
-void decryptDataRsa(const byte *data, word32 dataLength, RsaKey &key, std::string &out);
+void encryptDataAes(const std::string &data, const byte *aesKey, byte *out, word32 &outLength);
 
-void encryptDataAes(const std::string &data, Aes &key, byte *out, word32 &outLength);
+void decryptDataAes(const byte *data, word32 dataLength, const byte * aesKey, std::string &out);
 
-void decryptDataAes(const byte *data, word32 dataLength, Aes &key, std::string &out);
+void deriveAesKey(const byte *data, word32 dataLength, RsaKey &rsaKey, byte *out);
 
 void generateSignature(const std::string &data, const RsaKey &privKey, byte *signature, word32 &outLength);
 

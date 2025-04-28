@@ -80,7 +80,7 @@ void initSocket(DeviceStatus &status)
         throw std::runtime_error("Failed to set buffered output");
     }
 
-    #ifndef TEST_ORACON_NO_TIMEOUT
+#ifndef TEST_ORACON_NO_TIMEOUT
     std::string data = COMMAND_SET_TIMEOUT;
     data += std::to_string(SOCKET_OPEN_TIMEOUT * 1000) +
             "," + std::to_string(SOCKET_CONNECT_TIMEOUT * 1000) +
@@ -91,7 +91,7 @@ void initSocket(DeviceStatus &status)
     {
         throw std::runtime_error("Failed to set timeouts");
     }
-    #endif
+#endif
 
     ESP_LOGI("CONNECT", "Socket init successful");
 }
@@ -198,7 +198,7 @@ void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
     byte buf[MAX_MESSAGE_SIZE];
     word32 encSize;
 
-    encryptDataRsa(data, status.privateKey, buf, encSize);
+    encryptDataAes(data, status.aesKey, buf, encSize);
     sendData(buf, encSize, status.socketId);
 #endif
 
@@ -234,7 +234,7 @@ std::string getData(DeviceStatus &status)
 #ifdef TEST_ORACON_NO_ENCRYPTION
         out = std::string(reinterpret_cast<const char *>(rawData), buffer.size() / 2);
 #else
-        decryptDataRsa(rawData, (buffer.size() / 2), status.privateKey, out);
+        decryptDataAes(rawData, (buffer.size() / 2), status.aesKey, out);
 #endif
         ESP_LOGI("GETDATA", "Sucessfully received data %s", out.c_str());
         return out;
@@ -247,32 +247,16 @@ std::string getData(DeviceStatus &status)
     throw std::invalid_argument("Invalid format when receiving data");
 }
 
-bool validateMessage(const ProtocolMessage &msg, DeviceStatus &status)
-{
-    if (msg.token == status.token)
-    {
-        return true;
-    }
-    return false;
-}
-
 ProtocolMessage getNewMessage(DeviceStatus &status, bool validate)
 {
     std::string received = getData(status);
     ProtocolMessage msg = parseMessage(received);
-
-    if (!validate || validateMessage(msg, status))
-    {
-        ESP_LOGI("PARSER", "Successfuly received new message");
-        return msg;
-    }
-    throw std::invalid_argument("Received message is invalid");
+    return msg;
 }
 
 void initMessage(ProtocolMessage &msg, DeviceStatus &status)
 {
     msg.deviceId = status.deviceId;
-    msg.token = status.token;
 }
 
 void sendAck(DeviceStatus &status)
@@ -292,6 +276,26 @@ void sendNack(DeviceStatus &status)
     msg.type = ProtocolMessageType::TYPE_NACK;
 
     sendMessage(msg, status);
+}
+
+void verifyServer(const std::string &data, DeviceStatus &status)
+{
+    std::pair<std::string, std::string> sigAndKey = dataToSignatureAndKey(data);
+    byte buff[MAX_SIGNATURE_SIZE];
+
+    hexToData(sigAndKey.first, buff);
+    word32 buffLength = sigAndKey.first.size() / 2; // Hex encoded string - actual size is half
+
+    // Server ID should be always 0
+    if (verifySignature("0", status.serverKey, buff, buffLength))
+    {
+        throw std::invalid_argument("Failed to verify server signature");
+    }
+
+    hexToData(sigAndKey.second, buff);
+    buffLength = sigAndKey.second.size() / 2;
+
+    deriveAesKey(buff, buffLength, status.privateKey, status.aesKey);
 }
 
 void authenticateDevice(DeviceStatus &status)
@@ -317,29 +321,18 @@ void authenticateDevice(DeviceStatus &status)
         {
             ESP_LOGI("AUTH", "Connect message received");
 
-            std::string signature = dataToSignature(msg.data);
-            byte sigBytes[MAX_SIGNATURE_SIZE];
-
-            hexToData(signature, sigBytes);
-
 #ifdef TEST_ORACON_NO_SIGNATURE_VERIFICATION
-            status.token = msg.token;
             sendAck(status);
             status.socketStatus = SocketStatus::SOCKET_AUTHENTICATED;
             ESP_LOGI("AUTH", "Sucessfully authenticated device");
             return;
 #else
-            word32 sigLength = signature.size() / 2; // Hex encoded string - actual size is half
-            // Server ID should be always 0
-            if (verifySignature("0", status.serverKey, sigBytes, sigLength))
-            {
-                status.token = msg.token;
-                sendAck(status);
-                status.socketStatus = SocketStatus::SOCKET_AUTHENTICATED;
-                ESP_LOGI("AUTH", "Sucessfully authenticated device");
-                return;
-            }
-            ESP_LOGE("AUTH", "Failed to verify server signature");
+
+            verifyServer(msg.data, status);
+            sendAck(status);
+            status.socketStatus = SocketStatus::SOCKET_AUTHENTICATED;
+            ESP_LOGI("AUTH", "Sucessfully authenticated device");
+            return;
 #endif
         }
         ESP_LOGE("AUTH", "Connect message not received");

@@ -247,19 +247,20 @@ ProtocolMessage parseMessage(const std::string &message)
     return msg;
 }
 
-std::string dataToSignature(const std::string &data)
+std::pair<std::string, std::string> dataToSignatureAndKey(const std::string &data)
 {
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, data);
     std::string signature = doc["signature"] | "unknown";
+    std::string key = doc["key"] | "unknown";
 
     // Error when parsing
-    if (error || signature == "unknown")
+    if (error || signature == "unknown" || key == "unknown")
     {
-        throw std::invalid_argument("Invalid signature format");
+        throw std::invalid_argument("Invalid signature/key format");
     }
 
-    return signature;
+    return std::make_pair(signature, key);
 }
 
 DeviceConfig stringToConfig(const std::string &data)

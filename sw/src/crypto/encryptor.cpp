@@ -1,15 +1,14 @@
 #include "encryptor.h"
 /*
-Examples: https://github.com/wolfSSL/wolfssl-examples/blob/master/ecc/
 Docs: https://www.wolfssl.com/documentation/manuals/wolfssl/ecc_8h.html
  */
 
 std::string addPKCS7Padding(const std::string &data)
 {
     std::string padded = data;
-    size_t padLen = MESSAGE_BLOCK_SIZE - (data.size() % MESSAGE_BLOCK_SIZE);
+    size_t padLen = AES_BLOCK_SIZE - (data.size() % AES_BLOCK_SIZE);
     if (padLen == 0)
-        padLen = MESSAGE_BLOCK_SIZE; // Full block padding if already aligned
+        padLen = AES_BLOCK_SIZE; // Full block padding if already aligned
 
     return padded.append(padLen, static_cast<char>(padLen));
 }
@@ -25,7 +24,7 @@ void removePKCS7Padding(std::string &data)
     unsigned char padLen = static_cast<unsigned char>(data.back());
 
     // Validate padding length
-    if (padLen == 0 || padLen > MESSAGE_BLOCK_SIZE)
+    if (padLen == 0 || padLen > AES_BLOCK_SIZE)
     {
         throw std::invalid_argument("Invalid padding length");
     }
@@ -42,46 +41,22 @@ void removePKCS7Padding(std::string &data)
     data.resize(data.size() - padLen);
 }
 
-void encryptDataRsa(const std::string &data, RsaKey &key, byte *out, word32 &outLength)
+void decryptDataRsa(const byte *data, word32 dataLength, RsaKey &key, byte *out, word32 outLength)
 {
     int ret = 0;
-    WC_RNG rng;
 
-    ret = wc_InitRng(&rng);
-
-    if (ret != 0)
-    {
-        throw std::invalid_argument("ENCRYPT: Failed to init RNG");
-    }
-    // Encrypt the data using RSA
-    ret = wc_RsaPublicEncrypt(reinterpret_cast<const byte *>(data.data()), data.size(), out, outLength, &key, &rng);
-    wc_FreeRng(&rng);
-
-    if (ret < 0)
-    {
-        throw std::invalid_argument("ENCRYPT: RSA encryption failed, ret code: " + std::to_string(ret));
-    }
-}
-
-void decryptDataRsa(const byte *data, word32 dataLength, RsaKey &key, std::string &out)
-{
-    byte outBuffer[MAX_MESSAGE_SIZE];
-    word32 outLength = 0;
-    int ret = 0;
-
-    ret = wc_RsaPrivateDecrypt(data, dataLength, outBuffer, outLength, &key);
+    ret = wc_RsaPrivateDecrypt(data, dataLength, out, outLength, &key);
     if (ret < 0)
     {
         throw std::invalid_argument("DECRYPT: RSA decryption failed, ret code: " + std::to_string(ret));
     }
-
-    out.assign(reinterpret_cast<char *>(outBuffer), ret);
 }
 
-void encryptDataAes(const std::string &data, Aes &key, byte *out, word32 &outLength)
+void encryptDataAes(const std::string &data, const byte *aesKey, byte *out, word32 &outLength)
 {
     int ret = 0;
     WC_RNG rng;
+    Aes aes;
 
     ret = wc_InitRng(&rng);
     if (ret != 0)
@@ -98,29 +73,31 @@ void encryptDataAes(const std::string &data, Aes &key, byte *out, word32 &outLen
         throw std::invalid_argument("AES ENCRYPT: Failed to generate IV");
     }
 
-    ret = wc_AesSetIV(&key, iv);
+    ret = wc_AesSetKey(&aes, aesKey, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
     if (ret != 0)
     {
         wc_FreeRng(&rng);
         throw std::invalid_argument("AES ENCRYPT: Failed to set IV");
     }
     // Add iv to the message
-    memcpy(iv, out, AES_BLOCK_SIZE);
+    memcpy(out, iv, AES_BLOCK_SIZE);
 
     std::string padded = addPKCS7Padding(data);
 
     outLength = padded.size();
-    ret = wc_AesCbcEncrypt(&key, out + AES_BLOCK_SIZE, reinterpret_cast<const byte *>(padded.data()), padded.size());
+    ret = wc_AesCbcEncrypt(&aes, out + AES_BLOCK_SIZE, reinterpret_cast<const byte *>(padded.data()), padded.size());
     wc_FreeRng(&rng);
 
     if (ret != 0)
     {
         throw std::invalid_argument("AES ENCRYPT: Failed to encrypt data, ret code: " + std::to_string(ret));
     }
+    outLength += AES_BLOCK_SIZE; // Add the IV length
 }
 
-void decryptDataAes(const byte *data, word32 dataLength, Aes &key, std::string &out)
+void decryptDataAes(const byte *data, word32 dataLength, const byte *aesKey, std::string &out)
 {
+    Aes aes;
     // Get first bytes as iv
     if (dataLength <= AES_BLOCK_SIZE)
     {
@@ -130,7 +107,7 @@ void decryptDataAes(const byte *data, word32 dataLength, Aes &key, std::string &
     byte iv[AES_BLOCK_SIZE];
     memcpy(iv, data, AES_BLOCK_SIZE);
 
-    int ret = wc_AesSetIV(&key, iv);
+    int ret = wc_AesSetKey(&aes, aesKey, AES_BLOCK_SIZE, iv, AES_DECRYPTION);
     if (ret != 0)
     {
         throw std::invalid_argument("AES DECRYPT: Failed to set IV");
@@ -139,7 +116,7 @@ void decryptDataAes(const byte *data, word32 dataLength, Aes &key, std::string &
     byte decrypted[MAX_MESSAGE_SIZE];
     word32 decryptedLength = dataLength - AES_BLOCK_SIZE;
 
-    ret = wc_AesCbcDecrypt(&key, decrypted, data + AES_BLOCK_SIZE, decryptedLength);
+    ret = wc_AesCbcDecrypt(&aes, decrypted, data + AES_BLOCK_SIZE, decryptedLength);
     if (ret != 0)
     {
         throw std::invalid_argument("AES DECRYPT: Failed to decrypt data, ret code: " + std::to_string(ret));
@@ -147,6 +124,24 @@ void decryptDataAes(const byte *data, word32 dataLength, Aes &key, std::string &
 
     out = std::string(reinterpret_cast<char *>(decrypted), decryptedLength);
     removePKCS7Padding(out);
+}
+
+void deriveAesKey(const byte *data, word32 dataLength, RsaKey &rsaKey, byte *out)
+{
+    // Use KEM to derive AES key
+    byte decrypted[MAX_MESSAGE_SIZE];
+    word32 decryptedLength = 0;
+    int ret = 0;
+
+    // Decrypt the input data using RSA with no padding
+    decryptDataRsa(data, dataLength, rsaKey, decrypted, decryptedLength);
+
+    // Use HKDF to derive the AES key
+    ret = wc_HKDF(SHA256, decrypted, decryptedLength, nullptr, 0, nullptr, 0, out, AES_BLOCK_SIZE);
+    if (ret != 0)
+    {
+        throw std::invalid_argument("KEM: HKDF key derivation failed, ret code: " + std::to_string(ret));
+    }
 }
 
 void generateSignature(const std::string &data, const RsaKey &privKey, byte *signature, word32 &outLength)
@@ -191,11 +186,11 @@ RsaKey loadKey(const char *keyPem, bool isPrivate)
 
     byte derBuff[MAX_DER_BUFF_SIZE];
 
-    // Initialize the ECC key structure
+    // Initialize the RSA key structure
     ret = wc_InitRsaKey(&key, nullptr);
     if (ret != 0)
     {
-        throw std::runtime_error("Failed to initialize ECC key");
+        throw std::runtime_error("Failed to initialize RSA key");
     }
 
     // Convert to DER

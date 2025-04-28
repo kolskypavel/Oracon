@@ -39,17 +39,15 @@ void testAesEncryptDecrypt()
     try
     {
         // Set the AES key from a predefined string (16 bytes for AES-128)
-        const char *predefinedKey = "1234567890123456"; 
-
-        Aes aesKey;
-        wc_AesSetKey(&aesKey, reinterpret_cast<const byte *>(predefinedKey), strlen(predefinedKey), nullptr, AES_ENCRYPTION);
+        const byte predefinedKey[16] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6'};
 
         // Encrypt the plaintext
-        encryptDataAes(plaintext, aesKey, encrypted, encryptedLength);
-        ESP_LOGI("CRYPTO TEST", "Successfully encrypted data with AES");
+        encryptDataAes(plaintext, predefinedKey, encrypted, encryptedLength);
+        ESP_LOGI("CRYPTO TEST", "Successfully encrypted data with AES, length %d", encryptedLength);
 
         // Decrypt the encrypted data
-        decryptDataAes(encrypted, encryptedLength, aesKey, decrypted);
+        decryptDataAes(encrypted, encryptedLength, predefinedKey, decrypted);
+        ESP_LOGI("CRYPTO TEST", "Successfully decrypted data with AES");
     }
     catch (const std::invalid_argument &ex)
     {
@@ -64,32 +62,32 @@ void testAesEncryptDecrypt()
     ESP_LOGI("CRYPTO TEST", "AES encryption/decryption success");
 }
 
-void testRsaEncryptDecrypt()
-{
-    const std::string data = "TEST DATA";
-    std::string decrypted;
-    byte out[MAX_MESSAGE_SIZE];
-    word32 outLength = MAX_MESSAGE_SIZE;
+// void testRsaEncryptDecrypt()
+// {
+//     const std::string data = "TEST DATA";
+//     std::string decrypted;
+//     byte out[MAX_MESSAGE_SIZE];
+//     word32 outLength = MAX_MESSAGE_SIZE;
 
-    try
-    {
-        encryptDataRsa(data, key, out, outLength);
-        ESP_LOGI("CRYPTO TEST", "Successfully encrypted data");
+//     try
+//     {
+//         encryptDataRsa(data, key, out, outLength);
+//         ESP_LOGI("CRYPTO TEST", "Successfully encrypted data");
 
-        decryptDataRsa(out, outLength, key, decrypted);
-    }
-    catch (const std::invalid_argument &ex)
-    {
-        ESP_LOGE("CRYPTO TEST", "Failed to encrypt/decrypt data %s", ex.what());
-    }
+//         decryptDataRsa(out, outLength, key, decrypted);
+//     }
+//     catch (const std::invalid_argument &ex)
+//     {
+//         ESP_LOGE("CRYPTO TEST", "Failed to encrypt/decrypt data %s", ex.what());
+//     }
 
-    if (decrypted != data)
-    {
-        ESP_LOGE("CRYPTO TEST", "Output mismatch!");
-        return;
-    }
-    ESP_LOGI("CRYPTO TEST", "Success");
-}
+//     if (decrypted != data)
+//     {
+//         ESP_LOGE("CRYPTO TEST", "Output mismatch!");
+//         return;
+//     }
+//     ESP_LOGI("CRYPTO TEST", "Success");
+// }
 
 void test_signature()
 {
@@ -122,8 +120,9 @@ void test_signature()
 void testCrypto(const DeviceStatus &status)
 {
     setupCryptoTest(status);
-    testRsaEncryptDecrypt();
+    //  testRsaEncryptDecrypt();
     test_signature();
+    testAesEncryptDecrypt();
 
     wc_FreeRng(&rng);
 #ifdef TEST_WOLFCRYPT_GENERATE_KEY

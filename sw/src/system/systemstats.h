@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <string>
 #include "wolfssl.h"
-#include <wolfssl/wolfcrypt/rsa.h> 
-#include <wolfssl/wolfcrypt/aes.h> 
+#include <wolfssl/wolfcrypt/rsa.h>
+#include <wolfssl/wolfcrypt/aes.h>
 #include "defines.h"
 
 // Current status of socket
@@ -44,18 +44,17 @@ public:
     // Socket related
     SocketStatus socketStatus;
     uint8_t socketId;
-    std::string token;
 
     // Device dynamic config
     DeviceConfig config;
 
     // Static fields
     uint16_t deviceId;
-    Aes aesKey;
+    uint8_t aesKey[16];
     RsaKey privateKey;
     RsaKey publicKey;
     RsaKey serverKey;
-    
+
     // Get the current battery level - read from voltage
     void updateBatteryLevel();
 };

@@ -3,7 +3,7 @@
 #include "defines.h"
 #include "system/systemstats.h"
 
-ecc_key key;
+ecc_key* key = nullptr;
 WC_RNG rng;
 
 void setupCryptoTest(const DeviceStatus &status)
@@ -43,10 +43,10 @@ void test_encrypt_decrypt()
 
     try
     {
-        encryptData(data, key, out, outLength);
+        encryptData(data, *key, out, outLength);
         ESP_LOGI("CRYPTO TEST", "Successfully encrypted data");
 
-        decryptData(out, outLength, key, decrypted);
+        decryptData(out, outLength, *key, decrypted);
     }
     catch (const std::invalid_argument &ex)
     {
@@ -71,10 +71,10 @@ void test_signature()
     try
     {
         // Sign the message
-        generateSignature(message, key, signature, sigLength);
+        generateSignature(message, *key, signature, sigLength);
 
         // Verify the signature
-        isValid = verifySignature(message, key, signature, sigLength);
+        isValid = verifySignature(message, *key, signature, sigLength);
     }
     catch (const std::invalid_argument &ex)
     {
@@ -96,5 +96,5 @@ void testCrypto(const DeviceStatus &status)
     test_signature();
 
     wc_FreeRng(&rng);
-    wc_ecc_free(&key);
+    wc_ecc_free(key);
 }

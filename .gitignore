@@ -1,2 +1,5 @@
 .DS_Store
 /siprotocol
+/sw/.vs
+/sw/out/build/x64-Debug
+/sw/platformio.ini.bak

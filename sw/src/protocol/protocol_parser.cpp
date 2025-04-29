@@ -145,7 +145,6 @@ std::string messageToString(const ProtocolMessage &message)
 
     doc["type"] = messageTypeToString(message.type);
     doc["device"] = message.deviceId;
-    doc["token"] = message.token;
     if (message.data.empty())
     {
         JsonObject data = doc["data"].to<JsonObject>();
@@ -218,7 +217,6 @@ ProtocolMessage parseMessage(const std::string &message)
     DeserializationError error = deserializeJson(doc, message);
 
     std::string stringType = doc["type"] | "unknown";
-    std::string token = doc["token"] | "unknown";
     int deviceId = doc["device"] | -1;
 
     if (!doc["data"].is<JsonObject>())
@@ -231,9 +229,9 @@ ProtocolMessage parseMessage(const std::string &message)
     std::string data;
     serializeJson(dataObject, data);
 
-    ESP_LOGI("PARSE", "Type: %s, Token: %s, Device: %d, Data: %s", stringType.c_str(), token.c_str(), deviceId, data.c_str());
+    ESP_LOGI("PARSE", "Type: %s, Device: %d, Data: %s", stringType.c_str(), deviceId, data.c_str());
 
-    if (error || stringType == "unknown" || token == "unknown" || deviceId == -1)
+    if (error || stringType == "unknown" || deviceId == -1)
     {
         throw std::invalid_argument("Failed to parse message");
     }
@@ -241,7 +239,6 @@ ProtocolMessage parseMessage(const std::string &message)
     ProtocolMessage msg;
     msg.type = stringToMessageType(stringType);
     msg.deviceId = deviceId;
-    msg.token = token;
     msg.data = data;
 
     return msg;
@@ -252,15 +249,15 @@ std::pair<std::string, std::string> dataToSignatureAndKey(const std::string &dat
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, data);
     std::string signature = doc["signature"] | "unknown";
-    std::string key = doc["key"] | "unknown";
+    std::string secret = doc["secret"] | "unknown";
 
     // Error when parsing
-    if (error || signature == "unknown" || key == "unknown")
+    if (error || signature == "unknown" || secret == "unknown")
     {
         throw std::invalid_argument("Invalid signature/key format");
     }
 
-    return std::make_pair(signature, key);
+    return std::make_pair(signature, secret);
 }
 
 DeviceConfig stringToConfig(const std::string &data)

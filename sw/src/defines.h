@@ -50,9 +50,9 @@
 #define PUNCH_BUFFER_SIZE 5
 
 // CRYPTO
-#define MAX_MESSAGE_SIZE 2048
+#define MAX_MESSAGE_SIZE 3000
 #define MAX_SIGNATURE_SIZE 256
-#define MAX_DER_BUFF_SIZE 512
+#define MAX_DER_BUFF_SIZE 2048
 
 // SOCKET
 #define SOCKET_OPEN_TIMEOUT 5
@@ -73,7 +73,7 @@
 // TESTING
 // #define LIMIT_NB_IOT_SERIAL                    // Checks for max length of received message
 #define NO_SETUP_TIMEOUT                          // Delay the device after startup to load NB-IOT module
-#define TEST_WOLFCRYPT                            // Perform test of encrypt/decrypt and signing
+//#define TEST_WOLFCRYPT                            // Perform test of encrypt/decrypt and signing
 //#define TEST_WOLFCRYPT_GENERATE_KEY             // Generates a key for the test
 #define TEST_ORACON_SERIAL_VERBOSE                // Prints the received / sent data to a serial
 #define TEST_ORACON_NO_ENCRYPTION                 // Runs unencrypted verison of protocol

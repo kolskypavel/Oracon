@@ -286,11 +286,13 @@ void verifyServer(const std::string &data, DeviceStatus &status)
     hexToData(sigAndKey.first, buff);
     word32 buffLength = sigAndKey.first.size() / 2; // Hex encoded string - actual size is half
 
+#ifndef TEST_ORACON_NO_SIGNATURE_VERIFICATION
     // Server ID should be always 0
     if (verifySignature("0", status.serverKey, buff, buffLength))
     {
         throw std::invalid_argument("Failed to verify server signature");
     }
+#endif
 
     hexToData(sigAndKey.second, buff);
     buffLength = sigAndKey.second.size() / 2;
@@ -311,7 +313,7 @@ void authenticateDevice(DeviceStatus &status)
 
     sendMessage(msg, status);
     ESP_LOGI("AUTH", "Connect sent");
-
+   
     try
     {
         // Wait for connect response
@@ -327,7 +329,6 @@ void authenticateDevice(DeviceStatus &status)
             ESP_LOGI("AUTH", "Sucessfully authenticated device");
             return;
 #else
-
             verifyServer(msg.data, status);
             sendAck(status);
             status.socketStatus = SocketStatus::SOCKET_AUTHENTICATED;

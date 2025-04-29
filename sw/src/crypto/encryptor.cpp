@@ -3,6 +3,7 @@
 Examples: https://github.com/wolfSSL/wolfssl-examples/blob/master/ecc/
 Docs: https://www.wolfssl.com/documentation/manuals/wolfssl/ecc_8h.html
  */
+#define TAG "ENC"
 
 std::string addPKCS7Padding(const std::string &data)
 {
@@ -144,52 +145,73 @@ bool verifySignature(const std::string &data, const ecc_key &key, const byte *si
     return false;
 }
 
-ecc_key loadKey(const char *keyPem, bool isPrivate)
+
+ecc_key* loadKey(const char *keyPem, bool isPrivate)
 {
-    ecc_key key;
+    ecc_key* key = (ecc_key*)XMALLOC(sizeof(ecc_key), NULL, DYNAMIC_TYPE_ECC);
     int ret = 0;
     word32 idx = 0;
 
     byte derBuff[MAX_DER_BUFF_SIZE];
 
     // Initialize the ECC key structure
-    ret = wc_ecc_init(&key);
+    ret = wc_ecc_init(key);
     if (ret != 0)
     {
         throw std::runtime_error("Failed to initialize ECC key");
     }
 
+    ESP_LOGI(TAG, "\n*** Convert to DER ***");
     // Convert to DER
     if (isPrivate)
     {
+        ESP_LOGI(TAG, "Private: wc_KeyPemToDer");
         ret = wc_KeyPemToDer(reinterpret_cast<const unsigned char *>(keyPem), strlen(keyPem), derBuff, MAX_DER_BUFF_SIZE, nullptr);
     }
     else
     {
+        ESP_LOGI(TAG, "Public: wc_PubKeyPemToDer");
+        /* expects a PEM that wraps an X.509 SubjectPublicKeyInfo: */
         ret = wc_PubKeyPemToDer(reinterpret_cast<const unsigned char *>(keyPem), strlen(keyPem), derBuff, MAX_DER_BUFF_SIZE);
     }
 
     if (ret < 0)
     {
+        ESP_LOGE(TAG, "Failed to convert PEM key to DER, ret code %d", ret);
         throw std::runtime_error("Failed to convert PEM key to DER, ret code: " + std::to_string(ret));
     }
+    else {
+        ESP_LOGI(TAG, "Success! PEM to DER");
+    }
 
+    idx = 0;
+    ESP_LOGI(TAG, "Decode:");
     if (isPrivate)
     {
         // Load the key
-        ret = wc_EccPrivateKeyDecode(derBuff, &idx, &key, ret);
+        ret = wc_EccPrivateKeyDecode(derBuff, &idx, key, ret);
         if (ret != 0)
         {
+            ESP_LOGE(TAG, "Private wc_EccPrivateKeyDecode failed");
             throw std::runtime_error("Failed to decode private key from DER, ret code: " + std::to_string(ret));
+        }
+        else {
+            ESP_LOGI(TAG, "Success: Private wc_EccPrivateKeyDecode");
         }
     }
     else
     {
-        ret = wc_EccPublicKeyDecode(derBuff, &idx, &key, ret);
+        /*  expects a raw EC point: */
+        ret = wc_EccPublicKeyDecode(derBuff, &idx, key, ret);
         if (ret != 0)
         {
+            ESP_LOGE(TAG, "Public wc_EccPublicKeyDecode failed! %d", ret);
             throw std::runtime_error("Failed to decode public key from DER, ret code: " + std::to_string(ret));
         }
+        else {
+            ESP_LOGI(TAG, "Success: Public wc_EccPublicKeyDecode");
+        }
     }
-    return key;
+    ESP_LOGI(TAG, "DONE! loadkey()");
+    return key; /* don't return a locally declared variable */
 }

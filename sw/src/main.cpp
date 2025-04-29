@@ -348,12 +348,16 @@ void initStatus()
 
   currStatus.deviceId = DEVICE_ID;
   currStatus.key = loadKey(DEVICE_PRIVATE_KEY, true);
-  currStatus.publicKey = loadKey(DEVICE_PUBLIC_KEY, false);
+  currStatus.publicKey = loadKey((const char*)DEVICE_PUBLIC_KEY, false);
   currStatus.serverKey = loadKey(SERVER_PUBLIC_KEY, false);
 
   ESP_LOGI("INIT", "Status init successful");
 }
-
+void wait_here() {
+    while (1) {
+        delay(10);
+    }
+}
 void setup()
 {
   // The watchdog timer is now disabled -> TODO: Enable
@@ -408,6 +412,7 @@ void setup()
     currStatus.runStatus = RunStatus::INIT_ERROR;
     status_led.setColorPreset(StatusLED::RED);
     ESP_LOGE("INIT", "Failed to init, cause: %s", ex.what());
+    wait_here();
   }
 
 #ifdef TEST_WOLFCRYPT

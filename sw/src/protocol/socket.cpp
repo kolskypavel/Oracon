@@ -331,7 +331,7 @@ void authenticateDevice(DeviceStatus &status)
 #else
             word32 sigLength = signature.size() / 2; // Hex encoded string - actual size is half
             // Server ID should be always 0
-            if (verifySignature("0", status.serverKey, sigBytes, sigLength))
+            if (verifySignature("0", *status.serverKey, sigBytes, sigLength))
             {
                 status.token = msg.token;
                 sendAck(status);

@@ -23,7 +23,7 @@ void generateSignature(const std::string &data, const ecc_key &privKey, byte *si
 bool verifySignature(const std::string &data, const ecc_key &key, const byte *signature, word32 sigLength);
 
 // Loads given key in PEM format (MUST include ---BEGIN header)
-ecc_key loadKey(const char *keyPem, bool isPrivate);
+ecc_key* loadKey(const char* keyPem, bool isPrivate);
 
 /*
  *  Following things modified in wolfssl
@@ -34,5 +34,5 @@ ecc_key loadKey(const char *keyPem, bool isPrivate);
  *   #define WOLFSSL_PUB_PEM_TO_DER
  *   # logging function disabled
  *   #define WOLFSSL_VALIDATE_ECC_IMPORT
- *   #define HAVE_ECC_SECPR2 
+ *   #define HAVE_ECC_SECPR2
  */

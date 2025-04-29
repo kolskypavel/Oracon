@@ -50,10 +50,10 @@ public:
 
     // Static fields
     uint16_t deviceId;
-    ecc_key key;
-    ecc_key publicKey;
-    ecc_key serverKey;
-    
+    ecc_key* key;
+    ecc_key* publicKey;
+    ecc_key* serverKey;
+
     // Get the current battery level - read from voltage
     void updateBatteryLevel();
 };

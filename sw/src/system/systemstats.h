@@ -50,10 +50,10 @@ public:
 
     // Static fields
     uint16_t deviceId;
-    uint8_t aesKey[16];
-    RsaKey privateKey;
-    RsaKey publicKey;
-    RsaKey serverKey;
+    uint8_t aesKey[AES_KEY_SIZE];
+    RsaKey * privateKey;
+    RsaKey * publicKey;
+    RsaKey * serverKey;
 
     // Get the current battery level - read from voltage
     void updateBatteryLevel();

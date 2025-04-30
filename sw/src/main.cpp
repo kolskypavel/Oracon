@@ -411,7 +411,6 @@ void setup()
   }
 
 #ifdef TEST_WOLFCRYPT
-  // wolfSSL_Debugging_ON();
   testCrypto(currStatus);
   delay(10000);
 #endif

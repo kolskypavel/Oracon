@@ -280,40 +280,40 @@ void sendNack(DeviceStatus &status)
 
 void verifyServer(const std::string &data, DeviceStatus &status)
 {
-    std::pair<std::string, std::string> sigAndKey = dataToSignatureAndKey(data);
+    std::string signature = dataToSignature(data);
     byte buff[MAX_SIGNATURE_SIZE];
 
-    hexToData(sigAndKey.first, buff);
-    word32 buffLength = sigAndKey.first.size() / 2; // Hex encoded string - actual size is half
+    hexToData(signature, buff);
+    word32 buffLength = signature.size() / 2; // Hex encoded string - actual size is half
 
-#ifndef TEST_ORACON_NO_SIGNATURE_VERIFICATION
     // Server ID should be always 0
-    if (verifySignature("0", status.serverKey, buff, buffLength))
+    if (!verifySignature("0", *status.serverKey, buff, buffLength))
     {
         throw std::invalid_argument("Failed to verify server signature");
     }
-#endif
-
-    hexToData(sigAndKey.second, buff);
-    buffLength = sigAndKey.second.size() / 2;
-
-    deriveAesKey(buff, buffLength, status.privateKey, status.aesKey);
 }
 
 void authenticateDevice(DeviceStatus &status)
 {
+#ifndef TEST_ORACON_NO_ENCRYPTION
+    // Generate and send AES key
+    generateAesKey(status.aesKey);
+    ESP_LOGI("AES KEY", "%s", dataToHex(status.aesKey, AES_KEY_SIZE).c_str());
+    byte encrypted[MAX_MESSAGE_SIZE];
+    int encSize = MAX_MESSAGE_SIZE;
+    encryptDataRsa(status.aesKey, AES_KEY_SIZE, *status.serverKey, encrypted, encSize);
+    sendData(encrypted, encSize, status.socketId);
+#endif
+
     // Send connect message
     ProtocolMessage msg;
     initMessage(msg, status);
     msg.type = ProtocolMessageType::TYPE_CONNECT;
-
-#ifndef TEST_ORACON_NO_SIGNATURE_VERIFICATION
-    msg.data = generateSignatureData(status); // Add signature
-#endif
+    msg.data = generateSignatureData(status);
 
     sendMessage(msg, status);
     ESP_LOGI("AUTH", "Connect sent");
-   
+
     try
     {
         // Wait for connect response
@@ -458,9 +458,7 @@ void getSignalStrength(DeviceStatus &status)
     }
 
     std::pair value = getValuesFromAt(response);
-    // ESP_LOGI("VALUE", "FIRST %d", value.first);
-    // ESP_LOGI("VALUE", "SECOND %d", value.second);
-
+    
     if (value.second != 1 && value.second != 5)
     {
         throw SocketException("Failed to register to service, code" + value.second);

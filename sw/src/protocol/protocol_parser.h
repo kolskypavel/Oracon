@@ -56,8 +56,8 @@ std::string punchToString(const SIRecord &record);
 // Serializes punches to string
 std::string punchesToString(const SIRecord punches[], int size);
 
-// Deserialize sign with signature and key
-std::pair<std::string, std::string> dataToSignatureAndKey(const std::string &data);
+// Deserialize signature 
+std::string dataToSignature(const std::string &data);
 
 // Deserialize string to config object
 DeviceConfig stringToConfig(const std::string &data);

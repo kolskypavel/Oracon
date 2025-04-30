@@ -1,6 +1,6 @@
 #include "encryptor.h"
 /*
-Docs: https://www.wolfssl.com/documentation/manuals/wolfssl/ecc_8h.html
+Docs: https://www.wolfssl.com/documentation/manuals/wolfssl/
  */
 
 std::string addPKCS7Padding(const std::string &data)
@@ -41,14 +41,39 @@ void removePKCS7Padding(std::string &data)
     data.resize(data.size() - padLen);
 }
 
-void decryptDataRsa(const byte *data, word32 dataLength, RsaKey &key, byte *out, word32 outLength)
+void generateAesKey(uint8_t *out)
+{
+    WC_RNG rng;
+    int ret = wc_InitRng(&rng);
+    if (ret != 0)
+    {
+        throw std::runtime_error("Failed to initialize RNG");
+    }
+
+    ret = wc_RNG_GenerateBlock(&rng, out, AES_KEY_SIZE);
+    wc_FreeRng(&rng);
+    if (ret != 0)
+    {
+        throw std::runtime_error("Failed to generate AES key");
+    }
+    ESP_LOGI("AES", "Successfuly generated AES key");
+}
+
+void encryptDataRsa(const byte *data, word32 dataLength, RsaKey &key, byte *out, int &outLength)
 {
     int ret = 0;
+    WC_RNG rng;
 
-    ret = wc_RsaPrivateDecrypt(data, dataLength, out, outLength, &key);
-    if (ret < 0)
+    ret = wc_InitRng(&rng);
+    if (ret != 0)
     {
-        throw std::invalid_argument("DECRYPT: RSA decryption failed, ret code: " + std::to_string(ret));
+        throw std::invalid_argument("RSA ENCRYPT: Failed to init RNG");
+    }
+
+    outLength = wc_RsaPublicEncrypt(data, dataLength, out, outLength, &key, &rng);
+    if (outLength < 0)
+    {
+        throw std::invalid_argument("RSA encryption failed, ret code: " + std::to_string(ret));
     }
 }
 
@@ -110,7 +135,7 @@ void decryptDataAes(const byte *data, word32 dataLength, const byte *aesKey, std
     int ret = wc_AesSetKey(&aes, aesKey, AES_BLOCK_SIZE, iv, AES_DECRYPTION);
     if (ret != 0)
     {
-        throw std::invalid_argument("AES DECRYPT: Failed to set IV");
+        throw std::invalid_argument("AES DECRYPT: Failed to set IV / key");
     }
 
     byte decrypted[MAX_MESSAGE_SIZE];
@@ -126,24 +151,6 @@ void decryptDataAes(const byte *data, word32 dataLength, const byte *aesKey, std
     removePKCS7Padding(out);
 }
 
-void deriveAesKey(const byte *data, word32 dataLength, RsaKey &rsaKey, byte *out)
-{
-    // Use KEM to derive AES key
-    byte decrypted[MAX_MESSAGE_SIZE];
-    word32 decryptedLength = 0;
-    int ret = 0;
-
-    // Decrypt the input data using RSA with no padding
-    decryptDataRsa(data, dataLength, rsaKey, decrypted, decryptedLength);
-
-    // Use HKDF to derive the AES key
-    ret = wc_HKDF(SHA256, decrypted, decryptedLength, nullptr, 0, nullptr, 0, out, AES_BLOCK_SIZE);
-    if (ret != 0)
-    {
-        throw std::invalid_argument("KEM: HKDF key derivation failed, ret code: " + std::to_string(ret));
-    }
-}
-
 void generateSignature(const std::string &data, const RsaKey &privKey, byte *signature, word32 &outLength)
 {
     int ret = 0;
@@ -156,8 +163,8 @@ void generateSignature(const std::string &data, const RsaKey &privKey, byte *sig
     {
         throw std::invalid_argument("SIGNATURE: Failed to init RNG, ret code: " + std::to_string(ret));
     }
-
-    ret = wc_SignatureGenerate(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_RSA, reinterpret_cast<const byte *>(data.data()), data.size(), signature, &outLength, &privKey, sizeof(privKey), &rng);
+    
+    ret = wc_SignatureGenerate_ex(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_RSA_W_ENC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, &outLength, &privKey, sizeof(privKey), &rng, 0);
     wc_FreeRng(&rng);
     if (ret == 0)
     {
@@ -168,26 +175,34 @@ void generateSignature(const std::string &data, const RsaKey &privKey, byte *sig
 
 bool verifySignature(const std::string &data, const RsaKey &key, const byte *signature, word32 sigLength)
 {
-    int ret = wc_SignatureVerify(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_RSA, reinterpret_cast<const byte *>(data.data()), data.size(), signature, sigLength, &key, sizeof(key));
+    int ret = wc_SignatureVerify(WC_HASH_TYPE_SHA256, WC_SIGNATURE_TYPE_RSA_W_ENC, reinterpret_cast<const byte *>(data.data()), data.size(), signature, sigLength, &key, sizeof(key));
 
     if (ret == 0)
     {
+        ESP_LOGI("SIGN", "Successfully verified signature");
         return true;
     }
     ESP_LOGE("SIGN", "Failed to verify signature, err: %d", ret);
     return false;
 }
 
-RsaKey loadKey(const char *keyPem, bool isPrivate)
+RsaKey *loadKey(const char *keyPem, bool isPrivate)
 {
-    RsaKey key;
     int ret = 0;
     word32 idx = 0;
+
+    // Allocate memory
+    RsaKey *key = (RsaKey *)XMALLOC(sizeof(RsaKey), NULL, DYNAMIC_TYPE_RSA);
+
+    if (!key)
+    {
+        throw std::runtime_error("Failed to allocate memory for RSA key");
+    }
 
     byte derBuff[MAX_DER_BUFF_SIZE];
 
     // Initialize the RSA key structure
-    ret = wc_InitRsaKey(&key, nullptr);
+    ret = wc_InitRsaKey(key, nullptr);
     if (ret != 0)
     {
         throw std::runtime_error("Failed to initialize RSA key");
@@ -211,7 +226,7 @@ RsaKey loadKey(const char *keyPem, bool isPrivate)
     if (isPrivate)
     {
         // Load the private RSA key
-        ret = wc_RsaPrivateKeyDecode(derBuff, &idx, &key, ret);
+        ret = wc_RsaPrivateKeyDecode(derBuff, &idx, key, ret);
         if (ret != 0)
         {
             throw std::runtime_error("Failed to decode private RSA key from DER, ret code: " + std::to_string(ret));
@@ -220,7 +235,7 @@ RsaKey loadKey(const char *keyPem, bool isPrivate)
     else
     {
         // Load the public RSA key
-        ret = wc_RsaPublicKeyDecode(derBuff, &idx, &key, ret);
+        ret = wc_RsaPublicKeyDecode(derBuff, &idx, key, ret);
         if (ret != 0)
         {
             throw std::runtime_error("Failed to decode public RSA key from DER, ret code: " + std::to_string(ret));

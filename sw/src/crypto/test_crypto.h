@@ -25,7 +25,7 @@ void setupCryptoTest(const DeviceStatus &status)
         throw std::invalid_argument("Failed to generate RSA key");
     }
 #else
-    key = status.privateKey;
+    key = *status.privateKey;
 #endif
 }
 
@@ -62,38 +62,27 @@ void testAesEncryptDecrypt()
     ESP_LOGI("CRYPTO TEST", "AES encryption/decryption success");
 }
 
-// void testRsaEncryptDecrypt()
-// {
-//     const std::string data = "TEST DATA";
-//     std::string decrypted;
-//     byte out[MAX_MESSAGE_SIZE];
-//     word32 outLength = MAX_MESSAGE_SIZE;
-
-//     try
-//     {
-//         encryptDataRsa(data, key, out, outLength);
-//         ESP_LOGI("CRYPTO TEST", "Successfully encrypted data");
-
-//         decryptDataRsa(out, outLength, key, decrypted);
-//     }
-//     catch (const std::invalid_argument &ex)
-//     {
-//         ESP_LOGE("CRYPTO TEST", "Failed to encrypt/decrypt data %s", ex.what());
-//     }
-
-//     if (decrypted != data)
-//     {
-//         ESP_LOGE("CRYPTO TEST", "Output mismatch!");
-//         return;
-//     }
-//     ESP_LOGI("CRYPTO TEST", "Success");
-// }
+void testRsaEncrypt()
+{
+    uint8_t data[16] = {0x01, 0x41, 0xd5, 0xef, 0xda, 0x08, 0x60, 0x14, 0x44, 0x2f, 0xf5, 0xf0, 0xe8, 0x98, 0xa0, 0xed};
+    byte out[MAX_SIGNATURE_SIZE];
+    int outLength = MAX_SIGNATURE_SIZE;
+    try
+    {
+        encryptDataRsa(data, 16, key, out, outLength);
+        ESP_LOGI("CRYPTO TEST", "Successfully encrypted data");
+    }
+    catch (const std::invalid_argument &ex)
+    {
+        ESP_LOGE("CRYPTO TEST", "Failed to encrypt/decrypt data %s", ex.what());
+    }
+}
 
 void test_signature()
 {
     const std::string message = "SIGNATURE TEST MESSAGE";
     byte signature[MAX_SIGNATURE_SIZE];
-    word32 sigLength = sizeof(signature);
+    word32 sigLength = MAX_SIGNATURE_SIZE;
     bool isValid = false;
 
     try
@@ -120,7 +109,7 @@ void test_signature()
 void testCrypto(const DeviceStatus &status)
 {
     setupCryptoTest(status);
-    //  testRsaEncryptDecrypt();
+    testRsaEncrypt();
     test_signature();
     testAesEncryptDecrypt();
 

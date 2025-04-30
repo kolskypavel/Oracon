@@ -244,20 +244,19 @@ ProtocolMessage parseMessage(const std::string &message)
     return msg;
 }
 
-std::pair<std::string, std::string> dataToSignatureAndKey(const std::string &data)
+std::string dataToSignature(const std::string &data)
 {
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, data);
     std::string signature = doc["signature"] | "unknown";
-    std::string secret = doc["secret"] | "unknown";
 
     // Error when parsing
-    if (error || signature == "unknown" || secret == "unknown")
+    if (error || signature == "unknown")
     {
-        throw std::invalid_argument("Invalid signature/key format");
+        throw std::invalid_argument("Invalid signature format");
     }
 
-    return std::make_pair(signature, secret);
+    return signature;
 }
 
 DeviceConfig stringToConfig(const std::string &data)
@@ -292,7 +291,7 @@ std::string generateSignatureData(const DeviceStatus &status)
     byte out[MAX_SIGNATURE_SIZE];
     word32 outLen = MAX_SIGNATURE_SIZE;
 
-    generateSignature(sigData, status.privateKey, out, outLen);
+    generateSignature(sigData, *status.privateKey, out, outLen);
     JsonDocument doc;
     doc["signature"] = dataToHex(out, outLen);
 

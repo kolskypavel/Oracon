@@ -11,6 +11,14 @@ void writeData(const std::string &data)
     delay(100);
 }
 
+void clearInBuffer()
+{
+    while (nbiot_serial.available())
+    {
+        nbiot_serial.read();
+    }
+}
+
 std::string receiveRawData()
 {
     long i = 0;
@@ -21,11 +29,13 @@ std::string receiveRawData()
     {
         if (timeout >= SOCKET_READ_TIMEOUT)
         {
-            throw SocketException("Socket timeout expired");
+            throw SocketException("Socket read timeout expired");
         }
+
 #ifdef TEST_ORACON_SERIAL_VERBOSE
         ESP_LOGI("SOCKET", "TIMEOUT %d", timeout);
 #endif
+
         timeout++;
         delay(1000);
     }
@@ -87,6 +97,7 @@ void initSocket(DeviceStatus &status)
             "," + std::to_string(SOCKET_READ_TIMEOUT * 1000);
 
     writeData(data);
+    resp = receiveRawData();
     if (!startsWith(resp, COMMAND_RESPONSE_OK))
     {
         throw std::runtime_error("Failed to set timeouts");
@@ -117,15 +128,24 @@ void connectSocket(DeviceStatus &status)
     }
 
     // Check socket connection status
+    writeData(COMMAND_CONNECT + "?");
+    resp = receiveRawData();
+
+    if (startsWith(resp, COMMAND_RESPONSE_CONNECTED))
+    {
+        ESP_LOGI("CONNECT", "Device already connected to socket");
+        status.socketStatus = SocketStatus::SOCKET_CONNECTED;
+        return;
+    }
 
     std::string connect = COMMAND_CONNECT;
-    connect += "0,\"TCP\",";
+    connect += "=0,\"TCP\",";
     connect += SERVER_IP;
     connect += ",";
     connect += SERVER_PORT;
 
     writeData(connect);
-    delay(SOCKET_CONNECT_TIMEOUT * 1000);
+    delay(SOCKET_CONNECT_READ_TIMEOUT * 1000);
     resp = receiveRawData();
 
     std::pair<int, int> values = getValuesFromAt(resp);
@@ -157,13 +177,13 @@ void sendData(const byte *data, int dataLen, int socketId)
     writeData(buffer);
     buffer = receiveRawData();
 
-    if (buffer != COMMAND_RESPONSE_SEND)
+    if (startsWith(buffer, COMMAND_RESPONSE_SEND_ERROR))
     {
-        throw SocketException("Invalid response to send command:" + buffer);
+        throw SocketException("Socket not open / closed by server");
     }
-    else if (startsWith(buffer, COMMAND_RESPONSE_CLOSE_SOCKET))
+    else if (buffer != COMMAND_RESPONSE_SEND)
     {
-        throw SocketException("Socket closed by server");
+        throw std::invalid_argument("Invalid response to send command:" + buffer);
     }
 
     // Send actual data
@@ -247,7 +267,7 @@ std::string getData(DeviceStatus &status)
     throw std::invalid_argument("Invalid format when receiving data");
 }
 
-ProtocolMessage getNewMessage(DeviceStatus &status, bool validate)
+ProtocolMessage getNewMessage(DeviceStatus &status)
 {
     std::string received = getData(status);
     ProtocolMessage msg = parseMessage(received);
@@ -317,7 +337,7 @@ void authenticateDevice(DeviceStatus &status)
     try
     {
         // Wait for connect response
-        msg = getNewMessage(status, false);
+        msg = getNewMessage(status);
 
         if (msg.type == ProtocolMessageType::TYPE_CONNECT)
         {
@@ -347,7 +367,7 @@ void authenticateDevice(DeviceStatus &status)
     throw SocketException("Failed to authenticate device");
 }
 
-void sendStatus(DeviceStatus &status, Preferences prefs)
+void sendStatus(DeviceStatus &status, Preferences &prefs)
 {
     ProtocolMessage msg;
     initMessage(msg, status);
@@ -356,7 +376,7 @@ void sendStatus(DeviceStatus &status, Preferences prefs)
 
     sendMessage(msg, status);
 
-    msg = getNewMessage(status, true);
+    msg = getNewMessage(status);
 
     if (msg.type == ProtocolMessageType::TYPE_CONF)
     {
@@ -383,10 +403,10 @@ void sendStatus(DeviceStatus &status, Preferences prefs)
         ESP_LOGI("STATUS", "Status received by server");
         return;
     }
+    // Status not accepted by server
     else
     {
-        // Undefined behavior
-        throw SocketException("Undefined behavior when receiving status");
+        throw SocketException("Status not received by server - NACK");
     }
 }
 
@@ -400,7 +420,7 @@ bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount)
     ESP_LOGI("PUNCH", "Sending %d punches", punchCount);
     sendMessage(msg, status);
 
-    msg = getNewMessage(status, true);
+    msg = getNewMessage(status);
 
     // Get confirmation
     if (msg.type == ProtocolMessageType::TYPE_ACK)
@@ -416,13 +436,7 @@ bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount)
 void closeSocket(DeviceStatus &status)
 {
     writeData(COMMAND_CLOSE);
-    // std::string resp = receiveRawData();
-    // if (startsWith(resp, COMMAND_RESPONSE_OK))
-    // {
-    //     ESP_LOGI("SOCKET", "Socket closed successfuly");
-    //     return;
-    // }
-    // ESP_LOGE("SOCKET", "Failed to close socket");
+    clearInBuffer();
 }
 
 void getSignalStrength(DeviceStatus &status)
@@ -432,7 +446,7 @@ void getSignalStrength(DeviceStatus &status)
 
     if (!startsWith(response, COMMAND_RESPONSE_SIGNAL))
     {
-        throw SocketException("Invalid signal strength response");
+        throw std::invalid_argument("Invalid signal strength response");
     }
 
     std::pair values = getValuesFromAt(response);
@@ -441,7 +455,7 @@ void getSignalStrength(DeviceStatus &status)
     // NB-Iot signal not detectable
     if (rssi == 99)
     {
-        status.signal = 0;
+        status.signal = 113;
     }
     // Convert RSSI to dBm using TS 27.007 Section 8.5
     else if (rssi >= 0 && rssi <= 31)
@@ -454,13 +468,13 @@ void getSignalStrength(DeviceStatus &status)
     response = receiveRawData();
     if (!startsWith(response, COMMAND_RESPONSE_SERVICE))
     {
-        throw SocketException("Invalid response for service command");
+        throw std::invalid_argument("Invalid response for service command");
     }
 
     std::pair value = getValuesFromAt(response);
-    
+
     if (value.second != 1 && value.second != 5)
     {
-        throw SocketException("Failed to register to service, code" + value.second);
+        throw std::invalid_argument("Failed to register to service, code" + value.second);
     }
 }

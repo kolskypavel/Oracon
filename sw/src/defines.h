@@ -57,7 +57,8 @@
 
 // SOCKET
 #define SOCKET_OPEN_TIMEOUT 5
-#define SOCKET_CONNECT_TIMEOUT 5
+#define SOCKET_CONNECT_TIMEOUT 7
+#define SOCKET_CONNECT_READ_TIMEOUT 10
 #define SOCKET_READ_TIMEOUT 25
 #define SOCKET_READ_MODE "2" // 2 - ascii, 3 - hex
 #define SOCKET_READ_SIZE 200
@@ -74,11 +75,11 @@
 // TESTING
 // #define LIMIT_NB_IOT_SERIAL                    // Checks for max length of received message
 #define NO_SETUP_TIMEOUT                          // Delay the device after startup to load NB-IOT module
-#define TEST_WOLFCRYPT                            // Perform test of encrypt/decrypt and signing
+//#define TEST_WOLFCRYPT                            // Perform test of encrypt/decrypt and signing
 //#define TEST_WOLFCRYPT_GENERATE_KEY             // Generates a key for the test
 #define TEST_ORACON_SERIAL_VERBOSE                // Prints the received / sent data to a serial
 //#define TEST_ORACON_NO_ENCRYPTION                 // Runs unencrypted verison of protocol
 //#define TEST_ORACON_NO_SIGNATURE_VERIFICATION   // Doesn't verify signature from the server
-#define TEST_NO_SI_TASKS                          // Don't start the tasks for receiving SI data
+//#define TEST_NO_SI_TASKS                          // Don't start the tasks for receiving SI data
 #define TEST_SI_SERIAL_VERBOSE                    // Print info from SI serial reads
-#define TEST_ORACON_NO_TIMEOUT                    // Don't timeout on the socket connection
+//#define TEST_ORACON_NO_TIMEOUT                    // Don't timeout on the socket connection

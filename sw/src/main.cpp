@@ -10,10 +10,9 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
-
+#include <esp_task_wdt.h>
 #include "esp32_usb_serial.h"
 #include "wolfssl.h"
-#include <wolfssl/wolfcrypt/ecc.h>
 
 #include "led/statusled.hpp"
 #include "si/si_parser.h"
@@ -22,15 +21,12 @@
 #include "protocol/protocol_message.h"
 #include "protocol/socket.h"
 #include "protocol/exceptions.h"
-
 #include "crypto/test_crypto.h"
 
 // DO NOT INCLUDE in VCS
 #include "secrets.h"
-#include <wolfssl/wolfcrypt/logging.h>
-#include <esp_task_wdt.h>
 
-// USB handling
+// USB handling - library esp32_usb_serial
 SemaphoreHandle_t device_disconnected_sem;
 std::unique_ptr<CdcAcmDevice> vcp;
 bool isConnected = false;
@@ -48,8 +44,7 @@ unsigned long measureCurrSeconds;
 
 // Punches sending
 SIRecord punches[PUNCH_BUFFER_SIZE];
-bool punchesSent = true;
-int received = 0;
+uint8_t received = 0;
 
 // Status + prefs
 DeviceStatus currStatus;
@@ -158,15 +153,12 @@ void connectDevice()
 // You don't need to know the device's VID and PID. Just plug in any device
 // and the VCP service will pick correct (already registered) driver for the device
 #ifdef TEST_SI_SERIAL_VERBOSE
-  ESP_LOGI("USB", "Opening any VCP device...");
+
 #endif
   vcp = std::unique_ptr<CdcAcmDevice>(esp_usb::VCP::open(&dev_config));
 
   if (vcp == nullptr)
   {
-#ifdef TEST_SI_SERIAL_VERBOSE
-    ESP_LOGW("USB", "Failed to open VCP device, retrying...");
-#endif
     return;
   }
 
@@ -424,14 +416,12 @@ void setup()
 // Receives punches till no punches are left or the buffer is full
 void receivePunches()
 {
-  int count = 0;
-  while (count < PUNCH_BUFFER_SIZE && xQueueReceive(punchQueue, &punches[count], 0) == pdPASS)
+  while (received < PUNCH_BUFFER_SIZE && xQueueReceive(punchQueue, &punches[received], 0) == pdPASS)
   {
     // Set the order
     currStatus.punchesReceived++;
-    count++;
+    received++;
   }
-  received = count;
 }
 
 void setLeds()
@@ -488,18 +478,16 @@ void loop()
       {
       case SocketStatus::SOCKET_AUTHENTICATED:
       {
-
         status_led.setColorPreset(StatusLED::GREEN);
 
-        // PUNCHES?
-        if (punchesSent)
+        receivePunches();
+
+        if (received > 0)
         {
-          receivePunches();
-          if (received > 0)
+          ESP_LOGI("MAIN:", "Sending punches");
+          if (sendPunches(currStatus, punches, received))
           {
-            ESP_LOGI("MAIN:", "Sending punches");
-            punchesSent = false; // In case exception gets thrown, so the records don't get lost
-            punchesSent = sendPunches(currStatus, punches, received);
+            received = 0;
           }
         }
         // STATUS?
@@ -529,6 +517,7 @@ void loop()
     {
       // TODO: blink led or something
       ESP_LOGE("INVALID_ARGUMENT", "Error: %s", ex.what());
+      clearInBuffer();
     }
 
     // Connection error -> disconnect socket
@@ -547,5 +536,5 @@ void loop()
       status_led.setColorPreset(StatusLED::ORANGE);
     }
   }
-  delay(3);
+  delay(1000);
 }

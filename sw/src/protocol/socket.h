@@ -19,6 +19,9 @@ Implementation of the ORacon protocol
 // Writes the given raw data to serial
 void writeData(const std::string &data);
 
+// Clears the serial buffer in case of exception
+void clearInBuffer();
+
 // Sends data and checks if they got received correctly
 void sendData(const byte *data, int dataLen, int socketId);
 
@@ -31,11 +34,8 @@ std::string getData(DeviceStatus &status);
 // Sends given protocol message
 void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status);
 
-// Validates the given message
-bool validateMessage(const ProtocolMessage &msg, DeviceStatus &status);
-
 // Gets a new message from the server
-ProtocolMessage getNewMessage(DeviceStatus &status, bool validate);
+ProtocolMessage getNewMessage(DeviceStatus &status);
 
 // Init message with data from status struct
 void initMessage(ProtocolMessage &msg, DeviceStatus &status);
@@ -57,7 +57,7 @@ void authenticateDevice(DeviceStatus &status);
 void closeSocket(DeviceStatus &status);
 
 // Sends the current device status
-void sendStatus(DeviceStatus &status, Preferences prefs);
+void sendStatus(DeviceStatus &status, Preferences & prefs);
 
 // Sends the punches to the server, returns true for OK, false if the punches did not send
 bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount);

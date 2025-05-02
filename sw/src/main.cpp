@@ -16,6 +16,7 @@
 
 #include "led/statusled.hpp"
 #include "si/si_parser.h"
+#include "si/si_queue.h"
 #include "defines.h"
 #include "system/systemstats.h"
 #include "protocol/protocol_message.h"
@@ -41,10 +42,10 @@ unsigned long statusStartSeconds;
 unsigned long statusCurrSeconds;
 unsigned long measureStartSeconds;
 unsigned long measureCurrSeconds;
+uint8_t received = 0;
 
 // Punches sending
 SIRecord punches[PUNCH_BUFFER_SIZE];
-uint8_t received = 0;
 
 // Status + prefs
 DeviceStatus currStatus;
@@ -259,7 +260,8 @@ static void rs232_serial_task(void *pvParameter)
         // Check if data is somehow valid - cardnumber should never be 0
         if (record.cardNumber != 0 && record.stationNumber != 0)
         {
-          if (xQueueSend(punchQueue, &record, 0) != pdPASS)
+          // xQueueSend(punchQueue, &record, 0) != pdPASS
+          if (!enqueue(record))
           {
             ESP_LOGE("RS232", "Queue is full");
             // TODO: signal with LED
@@ -377,6 +379,7 @@ void setup()
 
   // INIT QUEUE
   punchQueue = xQueueCreate(PUNCH_QUEUE_SIZE, sizeof(SIRecord));
+  initQueue();
 
   // INIT PREFS
   prefs.begin("config", false);
@@ -416,7 +419,7 @@ void setup()
 // Receives punches till no punches are left or the buffer is full
 void receivePunches()
 {
-  while (received < PUNCH_BUFFER_SIZE && xQueueReceive(punchQueue, &punches[received], 0) == pdPASS)
+  while (received < PUNCH_QUEUE_SIZE && xQueueReceive(punchQueue, &punches[received], 0) == pdPASS)
   {
     // Set the order
     currStatus.punchesReceived++;
@@ -480,13 +483,17 @@ void loop()
       {
         status_led.setColorPreset(StatusLED::GREEN);
 
-        receivePunches();
+        if (received == 0)
+        {
+          receiveRecords(punches, received);
+        }
 
         if (received > 0)
         {
           ESP_LOGI("MAIN:", "Sending punches");
           if (sendPunches(currStatus, punches, received))
           {
+            pop(received);
             received = 0;
           }
         }

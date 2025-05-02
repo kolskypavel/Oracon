@@ -15,23 +15,23 @@ bool initQueue()
         ESP_LOGE("QUEUE", "Failed to mount file system");
         return false;
     }
-   
-    //DEBUG
-    // SPIFFS.remove(QUEUE_DATA_FILE_NAME);
-    // SPIFFS.remove(QUEUE_METADATA_FILE_NAME);
+
+    // DEBUG
+  //  SPIFFS.remove(QUEUE_DATA_FILE_NAME);
+  //  SPIFFS.remove(QUEUE_METADATA_FILE_NAME);
 
     if (SPIFFS.exists(QUEUE_DATA_FILE_NAME))
     {
-        queueFile = SPIFFS.open(QUEUE_DATA_FILE_NAME, "r+"); // Read/write, keep content
+        queueFile = SPIFFS.open(QUEUE_DATA_FILE_NAME, "rb+"); // Read/write, keep content
     }
     else
     {
-        queueFile = SPIFFS.open(QUEUE_DATA_FILE_NAME, "w+"); // Create new file
+        queueFile = SPIFFS.open(QUEUE_DATA_FILE_NAME, "wb+"); // Create new file
     }
 
     if (SPIFFS.exists(QUEUE_METADATA_FILE_NAME))
     {
-        metadataFile = SPIFFS.open(QUEUE_METADATA_FILE_NAME, "r+");
+        metadataFile = SPIFFS.open(QUEUE_METADATA_FILE_NAME, "rb+");
         if (metadataFile.size() >= 2) // Ensure there is enough data to read
         {
             metadataFile.read((uint8_t *)&readIndex, sizeof(readIndex));
@@ -47,7 +47,7 @@ bool initQueue()
     }
     else
     {
-        metadataFile = SPIFFS.open(QUEUE_METADATA_FILE_NAME, "w+");
+        metadataFile = SPIFFS.open(QUEUE_METADATA_FILE_NAME, "wb+");
     }
 
     if (!queueFile || !metadataFile)
@@ -59,9 +59,11 @@ bool initQueue()
     return true;
 }
 
-bool enqueue(const SIRecord &record)
+bool enqueueRecord(const SIRecord &record)
 {
     std::unique_lock<std::mutex> lock(mtx);
+
+    ESP_LOGI("QUEUE", "File size %d, record size %d, write %d", queueFile.size(), sizeof(SIRecord), writeIndex);
 
     // Check if queue is full
     if ((writeIndex + 1) % PUNCH_QUEUE_SIZE == readIndex)
@@ -81,6 +83,7 @@ bool enqueue(const SIRecord &record)
         ESP_LOGE("QUEUE", "Failed to write record to queue file");
         return false;
     }
+    queueFile.seek(0);  //Workaround for non working flush
 
     writeIndex = ((writeIndex + 1) % PUNCH_QUEUE_SIZE);
     if (!backupIndexes())
@@ -112,14 +115,14 @@ void receiveRecords(SIRecord *records, uint8_t &out)
             return;
         }
 
-        ESP_LOGI("Q","OUT %d",out);
+        ESP_LOGI("Q", "OUT %d", out);
         out++;
         tmpRead = (tmpRead + 1) % PUNCH_QUEUE_SIZE;
     }
     ESP_LOGI("QUEUE", "Read %d punches", out);
 }
 
-bool pop(uint8_t size)
+bool removeRecords(uint8_t size)
 {
     std::unique_lock<std::mutex> lock(mtx);
     // Check if the queue has enough elements to pop
@@ -148,13 +151,14 @@ bool backupIndexes()
         ESP_LOGE("QUEUE", "Failed to write readIndex to metadata file");
         return false;
     }
-
+  
     if (metadataFile.write(writeIndex) != 1)
     {
         ESP_LOGE("QUEUE", "Failed to write writeIndex to metadata file");
         return false;
     }
-    metadataFile.flush();
+
+    metadataFile.seek(0);   //Workaround for non working flush
 
     return true;
 }

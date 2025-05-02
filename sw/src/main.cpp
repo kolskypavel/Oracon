@@ -9,7 +9,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
 #include <esp_task_wdt.h>
 #include "esp32_usb_serial.h"
 #include "wolfssl.h"
@@ -35,7 +34,6 @@ bool usbReady = false;
 TaskHandle_t xHandle;
 
 StatusLED status_led, signal_led, battery_led;
-QueueHandle_t punchQueue;
 
 // Timers
 unsigned long statusStartSeconds;
@@ -83,7 +81,7 @@ bool rx_callback(const uint8_t *data, size_t data_len, void *arg)
     // Check if data is somehow valid - cardnumber should never be 0
     if (record.cardNumber != 0 && record.stationNumber != 0)
     {
-      if (xQueueSend(punchQueue, &record, 0) != pdPASS)
+      if (!enqueueRecord(record))
       {
         ESP_LOGE("USB", "Queue is full");
         // TODO: signal with LED
@@ -93,7 +91,7 @@ bool rx_callback(const uint8_t *data, size_t data_len, void *arg)
 #ifdef TEST_SI_SERIAL_VERBOSE
   else
   {
-    ESP_LOGI("RS232", "Received data is not SI-Card data");
+    ESP_LOGI("USB", "Received data is not SI-Card data");
   }
 #endif
   return true;
@@ -261,7 +259,7 @@ static void rs232_serial_task(void *pvParameter)
         if (record.cardNumber != 0 && record.stationNumber != 0)
         {
           // xQueueSend(punchQueue, &record, 0) != pdPASS
-          if (!enqueue(record))
+          if (!enqueueRecord(record))
           {
             ESP_LOGE("RS232", "Queue is full");
             // TODO: signal with LED
@@ -378,7 +376,6 @@ void setup()
   measureStartSeconds = getCurrentTime();
 
   // INIT QUEUE
-  punchQueue = xQueueCreate(PUNCH_QUEUE_SIZE, sizeof(SIRecord));
   initQueue();
 
   // INIT PREFS
@@ -414,17 +411,6 @@ void setup()
 #ifndef NO_SETUP_TIMEOUT
   vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
 #endif
-}
-
-// Receives punches till no punches are left or the buffer is full
-void receivePunches()
-{
-  while (received < PUNCH_QUEUE_SIZE && xQueueReceive(punchQueue, &punches[received], 0) == pdPASS)
-  {
-    // Set the order
-    currStatus.punchesReceived++;
-    received++;
-  }
 }
 
 void setLeds()
@@ -493,7 +479,7 @@ void loop()
           ESP_LOGI("MAIN:", "Sending punches");
           if (sendPunches(currStatus, punches, received))
           {
-            pop(received);
+            removeRecords(received);
             received = 0;
           }
         }

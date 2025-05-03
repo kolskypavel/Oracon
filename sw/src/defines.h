@@ -72,7 +72,7 @@
 // SOCKET
 #define SOCKET_OPEN_TIMEOUT 5
 #define SOCKET_CONNECT_TIMEOUT 7
-#define SOCKET_CONNECT_READ_TIMEOUT 10
+#define SOCKET_CONNECT_READ_TIMEOUT 12
 #define SOCKET_READ_TIMEOUT 25
 #define SOCKET_READ_MODE "2" // 2 - ascii, 3 - hex
 #define SOCKET_READ_SIZE 200
@@ -80,7 +80,7 @@
 // LOGIC
 #define MIN_STATUS_DELAY 20
 #define MAX_STATUS_DELAY 40
-#define INIT_MAIN_LOOP_DELAY 10
+#define INIT_NBIOT_DELAY 10
 #define MAX_SIGNAL_VALUE 103
 #define SYSTEM_STATS_MEASURE_DELAY 10
 #define MAX_SI_DATA_SIZE 50
@@ -88,7 +88,7 @@
 
 // TESTING
 // #define LIMIT_NB_IOT_SERIAL                    // Checks for max length of received message
-#define NO_SETUP_TIMEOUT                          // Delay the device after startup to load NB-IOT module
+//#define NO_SETUP_TIMEOUT                          // Delay the device after startup to load NB-IOT module
 //#define TEST_ORACON_NO_TIMEOUT                    // Don't timeout on the socket connection
 //#define TEST_WOLFCRYPT                            // Perform test of encrypt/decrypt and signing
 //#define TEST_WOLFCRYPT_GENERATE_KEY             // Generates a key for the test

@@ -282,7 +282,7 @@ static void rs232_serial_task(void *pvParameter)
       }
 #endif
     }
-    delay(1);
+    delay(1); // Prevent WDT from reset
   }
   // Fail safe - task shouldn't return
   vTaskDelete(nullptr);
@@ -295,6 +295,7 @@ static void led_show_task(void *pvParameter)
     battery_led.show();
     status_led.show();
     signal_led.show();
+    delay(1); // Prevent WDT from reset
   }
 
   // Fail safe - task shouldn't return
@@ -366,6 +367,10 @@ void initLEDs()
   battery_led.setColorPreset(StatusLED::COLOR_PRESET::BLUE);
   status_led.setColorPreset(StatusLED::COLOR_PRESET::BLUE);
   signal_led.setColorPreset(StatusLED::COLOR_PRESET::BLUE);
+
+  battery_led.show();
+  status_led.show();
+  signal_led.show();
 }
 
 void initStatus()
@@ -404,10 +409,6 @@ void setup()
   rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RX_RS232_PIN, TX_RS232_PIN);
   nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RX_NBIOT_PIN, TX_NBIOT_PIN);
 
-  // Clear buffer
-  delay(10);
-  nbiot_serial.println();
-
   // INIT LEDS
   initLEDs();
 
@@ -418,14 +419,23 @@ void setup()
   statusStartSeconds = getCurrentTime();
   measureStartSeconds = getCurrentTime();
 
-  // INIT QUEUE
-  initQueue();
-
   // INIT PREFS
   prefs.begin("config", false);
 
+  // Intial delay for NB-IOT module
+#ifndef NO_SETUP_TIMEOUT
+  vTaskDelay(pdMS_TO_TICKS(INIT_NBIOT_DELAY * 1000));
+#endif
+
+  // Clear buffer
+  delay(10);
+  nbiot_serial.println();
+
   try
   {
+    // INIT QUEUE
+    initQueue();
+
     // INIT STATUS
     initStatus();
 
@@ -434,8 +444,7 @@ void setup()
     initTasks();
 #endif
 
-    // INIT SOCKET
-    initSocket(currStatus);
+    currStatus.init = true;
   }
   catch (const std::runtime_error &ex)
   {
@@ -447,15 +456,7 @@ void setup()
 
 #ifdef TEST_WOLFCRYPT
   testCrypto(currStatus);
-  delay(10000);
 #endif
-
-// Intial delay for NB-IOT module
-#ifndef NO_SETUP_TIMEOUT
-  vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
-#endif
-
-  currStatus.init = true;
 }
 
 void setLeds()
@@ -540,11 +541,18 @@ void loop()
       break;
 
       case SocketStatus::SOCKET_CONNECTED:
+        status_led.setColorPreset(StatusLED::ORANGE);
         authenticateDevice(currStatus);
         break;
 
-      case SocketStatus::SOCKET_OFF:
+      case SocketStatus::SOCKET_INIT:
+        status_led.setColorPreset(StatusLED::ORANGE);
         connectSocket(currStatus);
+        break;
+
+      case SocketStatus::SOCKET_OFF:
+        status_led.setColorPreset(StatusLED::RED);
+        initSocket(currStatus);
         break;
       }
     }
@@ -568,7 +576,6 @@ void loop()
       }
       currStatus.socketStatus = SocketStatus::SOCKET_OFF;
     }
-    status_led.setColorPreset(StatusLED::ORANGE);
   }
   delay(1000);
 }

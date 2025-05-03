@@ -7,7 +7,7 @@
 #pragma once
 
 // Inits the filesystem and queue
-bool initQueue();
+void initQueue();
 
 //Puts a new record in the queue
 bool enqueueRecord(const SIRecord &record);

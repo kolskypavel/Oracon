@@ -8,17 +8,16 @@ File metadataFile; // Start and end indexes
 uint8_t readIndex = 0;
 uint8_t writeIndex = 0;
 
-bool initQueue()
+void initQueue()
 {
-    if (!SPIFFS.begin(true))
+    if (!SPIFFS.begin())
     {
-        ESP_LOGE("QUEUE", "Failed to mount file system");
-        return false;
+        throw std::runtime_error("QUEUE: Failed to mount file system");
     }
 
     // DEBUG
-    //  SPIFFS.remove(QUEUE_DATA_FILE_NAME);
-    //  SPIFFS.remove(QUEUE_METADATA_FILE_NAME);
+    // SPIFFS.remove(QUEUE_DATA_FILE_NAME);
+    // SPIFFS.remove(QUEUE_METADATA_FILE_NAME);
 
     if (SPIFFS.exists(QUEUE_DATA_FILE_NAME))
     {
@@ -31,14 +30,35 @@ bool initQueue()
 
     if (SPIFFS.exists(QUEUE_METADATA_FILE_NAME))
     {
+        bool valid = true;
         metadataFile = SPIFFS.open(QUEUE_METADATA_FILE_NAME, "rb+");
-        if (metadataFile.size() >= 2) // Ensure there is enough data to read
+
+        // Ensure there is enough data to read
+        if (metadataFile.size() >= 2)
         {
-            metadataFile.read((uint8_t *)&readIndex, sizeof(readIndex));
-            metadataFile.read((uint8_t *)&writeIndex, sizeof(writeIndex));
+            if (!metadataFile.seek(0))
+            {
+                {
+                    ESP_LOGE("QUEUE", "Failed to seek to start position in metadata file");
+                    valid = false;
+                }
+            }
+            if (metadataFile.read((uint8_t *)&readIndex, sizeof(readIndex)) != 1 ||
+                metadataFile.read((uint8_t *)&writeIndex, sizeof(writeIndex)) != 1)
+            {
+                ESP_LOGE("QUEUE", "Failed to read values from metadata file");
+                valid = false;
+            };
+
             ESP_LOGI("QUEUE", "Indexes r %d w %d", readIndex, writeIndex);
+
+            // Check if indexes are not corrupted
+            if (writeIndex > PUNCH_QUEUE_SIZE || readIndex > writeIndex)
+            {
+                valid = false;
+            }
         }
-        else
+        if (!valid)
         {
             ESP_LOGW("QUEUE", "Metadata file is corrupted or empty, resetting indexes");
             readIndex = 0;
@@ -52,11 +72,8 @@ bool initQueue()
 
     if (!queueFile || !metadataFile)
     {
-        ESP_LOGE("QUEUE", "Failed to open files");
-        return false;
+        throw std::runtime_error("QUEUE: Failed to open files");
     }
-
-    return true;
 }
 
 bool enqueueRecord(const SIRecord &record)
@@ -78,13 +95,22 @@ bool enqueueRecord(const SIRecord &record)
         ESP_LOGE("QUEUE", "Failed to seek to write position in queue file");
         return false;
     }
+#ifdef TEST_QUEUE_VERBOSE
+    ESP_LOGI("QUEUE", "Write - successfuly seeked to pos %d", writeIndex * sizeof(SIRecord));
+#endif
 
     if (queueFile.write((uint8_t *)&record, sizeof(SIRecord)) != sizeof(SIRecord))
     {
         ESP_LOGE("QUEUE", "Failed to write record to queue file");
         return false;
     }
+
+    queueFile.flush();
     queueFile.seek(0); // Workaround for non working flush
+
+#ifdef TEST_QUEUE_VERBOSE
+    ESP_LOGI("QUEUE", "Write - successfuly flushed to file");
+#endif
 
     writeIndex = ((writeIndex + 1) % PUNCH_QUEUE_SIZE);
     if (!backupIndexes())
@@ -143,7 +169,7 @@ bool removeRecords(uint8_t size)
 bool backupIndexes()
 {
 #ifdef TEST_QUEUE_VERBOSE
-    ESP_LOGI("QUEUE", "Indexes r %d w %d", readIndex, writeIndex);
+    ESP_LOGI("QUEUE", "Saving indexes");
 #endif
     if (!metadataFile.seek(0))
     {
@@ -165,5 +191,8 @@ bool backupIndexes()
 
     metadataFile.seek(0); // Workaround for non working flush
 
+#ifdef TEST_QUEUE_VERBOSE
+    ESP_LOGI("QUEUE", "Indexes r %d w %d saved to a file", readIndex, writeIndex);
+#endif
     return true;
 }

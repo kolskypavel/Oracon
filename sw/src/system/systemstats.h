@@ -12,6 +12,7 @@
 enum SocketStatus
 {
     SOCKET_OFF,
+    SOCKET_INIT,
     SOCKET_CONNECTED,
     SOCKET_AUTHENTICATED
 };

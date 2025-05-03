@@ -78,7 +78,8 @@ void initSocket(DeviceStatus &status)
 
     if (!startsWith(resp, COMMAND_RESPONSE_SIM_OK))
     {
-        throw std::runtime_error("SIM not connected");
+        ESP_LOGE("INIT", "SIM not connected");
+        return;
     }
 
     // Set socket to buffer receiving data
@@ -87,29 +88,45 @@ void initSocket(DeviceStatus &status)
 
     if (!startsWith(resp, COMMAND_RESPONSE_OK))
     {
-        throw std::runtime_error("Failed to set buffered output");
+        ESP_LOGE("INIT", "Failed to set buffered output");
     }
 
-#ifndef TEST_ORACON_NO_TIMEOUT
-    std::string data = COMMAND_SET_TIMEOUT;
-    data += std::to_string(SOCKET_OPEN_TIMEOUT * 1000) +
-            "," + std::to_string(SOCKET_CONNECT_TIMEOUT * 1000) +
-            "," + std::to_string(SOCKET_READ_TIMEOUT * 1000);
+    // #ifndef TEST_ORACON_NO_TIMEOUT
+    //     std::string data = COMMAND_SET_TIMEOUT;
+    //     data += std::to_string(SOCKET_OPEN_TIMEOUT * 1000) +
+    //             "," + std::to_string(SOCKET_CONNECT_TIMEOUT * 1000) +
+    //             "," + std::to_string(SOCKET_READ_TIMEOUT * 1000);
 
-    writeData(data);
-    resp = receiveRawData();
-    if (!startsWith(resp, COMMAND_RESPONSE_OK))
-    {
-        throw std::runtime_error("Failed to set timeouts");
-    }
-#endif
+    //     writeData(data);
+    //     resp = receiveRawData();
+    //     if (!startsWith(resp, COMMAND_RESPONSE_OK))
+    //     {
+    //         throw std::runtime_error("Failed to set timeouts");
+    //     }
+    // #endif
 
     ESP_LOGI("CONNECT", "Socket init successful");
+    status.socketStatus = SocketStatus::SOCKET_INIT;
 }
 
 void connectSocket(DeviceStatus &status)
 {
     std::string resp;
+
+    // Check service status
+    writeData(COMMAND_CHECK_SERVICE);
+    resp = receiveRawData();
+    if (!startsWith(resp, COMMAND_RESPONSE_SERVICE))
+    {
+        throw std::invalid_argument("Invalid response for service command");
+    }
+
+    std::pair value = getValuesFromAt(resp);
+
+    if (value.second != 1 && value.second != 5)
+    {
+        ESP_LOGE("CONNECT", "Failed to register to service, code %d", value.second);
+    }
 
     // Check netopen status
     writeData(COMMAND_CREATE_SOCKET + "?");
@@ -177,7 +194,7 @@ void sendData(const byte *data, int dataLen, int socketId)
     writeData(buffer);
     buffer = receiveRawData();
 
-    if (startsWith(buffer, COMMAND_RESPONSE_SEND_ERROR))
+    if (startsWith(buffer, COMMAND_RESPONSE_SEND_ERROR) || startsWith(buffer, COMMAND_RESPONSE_CLOSE_SOCKET))
     {
         throw SocketException("Socket not open / closed by server");
     }
@@ -461,20 +478,5 @@ void getSignalStrength(DeviceStatus &status)
     else if (rssi >= 0 && rssi <= 31)
     {
         status.signal = 113 - (rssi * 2); // dBm calculation
-    }
-
-    // Check service status
-    writeData(COMMAND_CHECK_SERVICE);
-    response = receiveRawData();
-    if (!startsWith(response, COMMAND_RESPONSE_SERVICE))
-    {
-        throw std::invalid_argument("Invalid response for service command");
-    }
-
-    std::pair value = getValuesFromAt(response);
-
-    if (value.second != 1 && value.second != 5)
-    {
-        throw std::invalid_argument("Failed to register to service, code" + value.second);
     }
 }

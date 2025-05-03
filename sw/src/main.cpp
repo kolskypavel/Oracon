@@ -1,6 +1,7 @@
 /**
  * Used libraries:
  * https://github.com/luc-github/esp32-usb-serial/
+ * StatusLED by David Rothbauer
  */
 
 #include <Arduino.h>
@@ -13,7 +14,7 @@
 #include "esp32_usb_serial.h"
 #include "wolfssl.h"
 
-#include "led/statusled.hpp"
+#include "led/statusled.h"
 #include "si/si_parser.h"
 #include "si/si_queue.h"
 #include "defines.h"
@@ -84,7 +85,11 @@ bool rx_callback(const uint8_t *data, size_t data_len, void *arg)
       if (!enqueueRecord(record))
       {
         ESP_LOGE("USB", "Queue is full");
-        // TODO: signal with LED
+        status_led.setMode(StatusLED::FLASH, STATUS_LED_ERROR_FREQ);
+      }
+      else
+      {
+        status_led.setMode(StatusLED::SOLID, 0);
       }
     }
   }
@@ -258,11 +263,15 @@ static void rs232_serial_task(void *pvParameter)
         // Check if data is somehow valid - cardnumber should never be 0
         if (record.cardNumber != 0 && record.stationNumber != 0)
         {
-          // xQueueSend(punchQueue, &record, 0) != pdPASS
           if (!enqueueRecord(record))
           {
             ESP_LOGE("RS232", "Queue is full");
-            // TODO: signal with LED
+
+            status_led.setMode(StatusLED::PULSE, STATUS_LED_ERROR_FREQ);
+          }
+          else
+          {
+            status_led.setMode(StatusLED::SOLID, 0);
           }
         }
       }
@@ -279,9 +288,31 @@ static void rs232_serial_task(void *pvParameter)
   vTaskDelete(nullptr);
 }
 
+static void led_show_task(void *pvParameter)
+{
+  while (true)
+  {
+    battery_led.show();
+    status_led.show();
+    signal_led.show();
+  }
+
+  // Fail safe - task shouldn't return
+  vTaskDelete(nullptr);
+}
+
 void initTasks()
 {
   BaseType_t res = xTaskCreate(
+      led_show_task, "led_show_task",
+      2048, nullptr, LED_TASK_PRIORITY, nullptr);
+
+  if (res != pdPASS)
+  {
+    throw std::runtime_error("Failed to init LED task");
+  }
+
+  res = xTaskCreate(
       rs232_serial_task, "rs232_serial_task",
       4096, nullptr, ESP_USB_SERIAL_TASK_PRIORITY, nullptr);
 
@@ -321,6 +352,22 @@ void initTasks()
   ESP_LOGI("TASKS", "Tasks init successfuly");
 }
 
+void initLEDs()
+{
+  status_led = StatusLED(STATUS_LED_R_PIN, 0, STATUS_LED_G_PIN, 1, STATUS_LED_B_PIN, 2, StatusLED::RGB_COMMON_CATHODE);
+  signal_led = StatusLED(SIGNAL_LED_R_PIN, 3, SIGNAL_LED_G_PIN, 4, SIGNAL_LED_B_PIN, 5, StatusLED::RGB_COMMON_CATHODE);
+  battery_led = StatusLED(BATTERY_LED_R_PIN, 6, BATTERY_LED_G_PIN, 7, BATTERY_LED_B_PIN, 8, StatusLED::RGB_COMMON_CATHODE);
+
+  battery_led.setMode(StatusLED::MODE::SOLID, 0);
+  signal_led.setMode(StatusLED::MODE::SOLID, 0);
+  status_led.setMode(StatusLED::MODE::SOLID, 0);
+
+  // Set blue -> init phase
+  battery_led.setColorPreset(StatusLED::COLOR_PRESET::BLUE);
+  status_led.setColorPreset(StatusLED::COLOR_PRESET::BLUE);
+  signal_led.setColorPreset(StatusLED::COLOR_PRESET::BLUE);
+}
+
 void initStatus()
 {
   currStatus.socketStatus = SocketStatus::SOCKET_OFF;
@@ -348,25 +395,21 @@ void initStatus()
 
 void setup()
 {
-  // The watchdog timer is now disabled -> TODO: Enable
+  // Watchdog timer tuning
   //  esp_task_wdt_init(18, true);  // Timeout in seconds, panic enabled
   //  esp_task_wdt_add(NULL);
 
   // Init serial ports
   usb_serial.begin(115200);
-  rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RX_RS232, TX_RS232);
-  nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RX_NBIOT, TX_NBIOT);
+  rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RX_RS232_PIN, TX_RS232_PIN);
+  nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RX_NBIOT_PIN, TX_NBIOT_PIN);
 
+  // Clear buffer
   delay(10);
   nbiot_serial.println();
 
   // INIT LEDS
-  status_led = StatusLED(42, 0, 1, 1, 2, 2, StatusLED::RGB_COMMON_CATHODE);
-  signal_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
-  // battery_led = StatusLED(6, 3, 4, 4, 5, 5, StatusLED::RGB_COMMON_CATHODE);
-  status_led.setEnabled(true);
-  signal_led.setEnabled(true);
-  // battery_led.setEnabled(true);
+  initLEDs();
 
   // INIT BATTERY MEASUREMET
   pinMode(BATTERY_MEASURE_PORT, INPUT);
@@ -397,7 +440,7 @@ void setup()
   catch (const std::runtime_error &ex)
   {
     // Failed to init
-    currStatus.runStatus = RunStatus::INIT_ERROR;
+    currStatus.init = false;
     status_led.setColorPreset(StatusLED::RED);
     ESP_LOGE("INIT", "Failed to init, cause: %s", ex.what());
   }
@@ -411,6 +454,8 @@ void setup()
 #ifndef NO_SETUP_TIMEOUT
   vTaskDelay(pdMS_TO_TICKS(INIT_MAIN_LOOP_DELAY * 1000));
 #endif
+
+  currStatus.init = true;
 }
 
 void setLeds()
@@ -446,11 +491,9 @@ void setLeds()
 
 void loop()
 {
-  // battery_led.show();
-  status_led.show();
-  signal_led.show();
+  setLeds();
 
-  if (currStatus.runStatus != RunStatus::INIT_ERROR)
+  if (currStatus.init)
   {
     try
     {
@@ -523,11 +566,9 @@ void loop()
       {
         closeSocket(currStatus);
       }
-      currStatus.runStatus = RunStatus::SOCKET_ERROR;
       currStatus.socketStatus = SocketStatus::SOCKET_OFF;
-      // TODO: set out the status LEDs
-      status_led.setColorPreset(StatusLED::ORANGE);
     }
+    status_led.setColorPreset(StatusLED::ORANGE);
   }
   delay(1000);
 }

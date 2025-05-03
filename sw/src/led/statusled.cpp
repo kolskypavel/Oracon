@@ -1,4 +1,4 @@
-#include "statusled.hpp"
+#include "statusled.h"
 #include "Arduino.h"
 #include "esp32-hal-ledc.h"
 #include "defines.h"
@@ -123,28 +123,36 @@ void StatusLED::setColorPreset(StatusLED::COLOR_PRESET preset)
 	case COLOR_PRESET::RED:
 		setColor(255, 0, 0);
 		break;
+
+	case COLOR_PRESET::BLUE:
+		setColor(0, 0, 255);
+		break;
 	default:
 		break;
 	}
 }
 
-void StatusLED::setSolid()
+void StatusLED::setMode(MODE mode, double freq)
 {
-	this->mode = SOLID;
-}
+	switch (mode)
+	{
+	case SOLID:
+		this->mode = SOLID;
+		break;
 
-void StatusLED::setFlash(double freq)
-{
-	this->mode = FLASH;
-	this->freq = freq;
-	// calc_offset();
-}
+	case FLASH:
+		this->mode = FLASH;
+		this->freq = freq;
+		break;
 
-void StatusLED::setPulse(double freq)
-{
-	this->mode = PULSE;
-	this->freq = freq;
-	// calc_offset();
+	case PULSE:
+		this->mode = PULSE;
+		this->freq = freq;
+		break;
+
+	default:
+		break;
+	}
 }
 
 void StatusLED::indicate(int r, int g, int b, MODE mode, double freq, int duration_ms)

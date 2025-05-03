@@ -4,8 +4,9 @@
 
 #include "stdint.h"
 
-/*
+/**
  * This class takes care of interacting with the user on the module side with an RGB led.
+ * @source David Rothbauer + https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/ledc.html
  */
 
 class StatusLED
@@ -28,9 +29,10 @@ public:
 
 	enum COLOR_PRESET
 	{
+		RED,
 		GREEN,
-		ORANGE,
-		RED
+		BLUE,
+		ORANGE
 	};
 
 	StatusLED(int pin_r, int channel_r, int pin_g, int channel_g, int pin_b, int channel_b, LED_TYPE led_type);
@@ -39,9 +41,7 @@ public:
 	void setEnabled(bool enabled);
 	void setColor(int r, int g, int b);
 	void setColorPreset(COLOR_PRESET preset);
-	void setSolid();
-	void setFlash(double freq);
-	void setPulse(double freq);
+	void setMode(MODE mode, double freq);
 	void indicate(int r, int g, int b, MODE mode, double freq, int duration_ms);
 	void show();
 

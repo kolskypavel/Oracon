@@ -16,15 +16,6 @@ enum SocketStatus
     SOCKET_AUTHENTICATED
 };
 
-// Used for LEDs
-enum RunStatus
-{
-    STATUS_OK,
-    INIT_ERROR,
-    SERIAL_ERROR,
-    SOCKET_ERROR
-};
-
 // Contains the dynamic configuration of device
 struct DeviceConfig
 {
@@ -35,11 +26,12 @@ struct DeviceConfig
 class DeviceStatus
 {
 public:
+    bool init;
+
     // System information
     uint8_t battery;
     uint8_t signal;
     uint32_t punchesReceived;
-    RunStatus runStatus;
 
     // Socket related
     SocketStatus socketStatus;
@@ -51,9 +43,9 @@ public:
     // Static fields
     uint16_t deviceId;
     uint8_t aesKey[AES_KEY_SIZE];
-    RsaKey * privateKey;
-    RsaKey * publicKey;
-    RsaKey * serverKey;
+    RsaKey *privateKey;
+    RsaKey *publicKey;
+    RsaKey *serverKey;
 
     // Get the current battery level - read from voltage
     void updateBatteryLevel();

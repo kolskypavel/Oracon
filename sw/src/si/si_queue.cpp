@@ -17,8 +17,8 @@ bool initQueue()
     }
 
     // DEBUG
-  //  SPIFFS.remove(QUEUE_DATA_FILE_NAME);
-  //  SPIFFS.remove(QUEUE_METADATA_FILE_NAME);
+    //  SPIFFS.remove(QUEUE_DATA_FILE_NAME);
+    //  SPIFFS.remove(QUEUE_METADATA_FILE_NAME);
 
     if (SPIFFS.exists(QUEUE_DATA_FILE_NAME))
     {
@@ -63,8 +63,9 @@ bool enqueueRecord(const SIRecord &record)
 {
     std::unique_lock<std::mutex> lock(mtx);
 
+#ifdef TEST_QUEUE_VERBOSE
     ESP_LOGI("QUEUE", "File size %d, record size %d, write %d", queueFile.size(), sizeof(SIRecord), writeIndex);
-
+#endif
     // Check if queue is full
     if ((writeIndex + 1) % PUNCH_QUEUE_SIZE == readIndex)
     {
@@ -83,7 +84,7 @@ bool enqueueRecord(const SIRecord &record)
         ESP_LOGE("QUEUE", "Failed to write record to queue file");
         return false;
     }
-    queueFile.seek(0);  //Workaround for non working flush
+    queueFile.seek(0); // Workaround for non working flush
 
     writeIndex = ((writeIndex + 1) % PUNCH_QUEUE_SIZE);
     if (!backupIndexes())
@@ -115,11 +116,13 @@ void receiveRecords(SIRecord *records, uint8_t &out)
             return;
         }
 
-        ESP_LOGI("Q", "OUT %d", out);
         out++;
         tmpRead = (tmpRead + 1) % PUNCH_QUEUE_SIZE;
     }
+
+#ifdef TEST_QUEUE_VERBOSE
     ESP_LOGI("QUEUE", "Read %d punches", out);
+#endif
 }
 
 bool removeRecords(uint8_t size)
@@ -139,7 +142,9 @@ bool removeRecords(uint8_t size)
 
 bool backupIndexes()
 {
+#ifdef TEST_QUEUE_VERBOSE
     ESP_LOGI("QUEUE", "Indexes r %d w %d", readIndex, writeIndex);
+#endif
     if (!metadataFile.seek(0))
     {
         ESP_LOGE("QUEUE", "Failed to seek metadata file");
@@ -151,14 +156,14 @@ bool backupIndexes()
         ESP_LOGE("QUEUE", "Failed to write readIndex to metadata file");
         return false;
     }
-  
+
     if (metadataFile.write(writeIndex) != 1)
     {
         ESP_LOGE("QUEUE", "Failed to write writeIndex to metadata file");
         return false;
     }
 
-    metadataFile.seek(0);   //Workaround for non working flush
+    metadataFile.seek(0); // Workaround for non working flush
 
     return true;
 }

@@ -43,8 +43,10 @@ void initMessage(ProtocolMessage &msg, DeviceStatus &status);
 // Sends confirmation message
 void sendAck(DeviceStatus &status);
 
+// Sends negative message - not accepted, invalid config format
 void sendNack(DeviceStatus &status);
 
+// Inits the socket for connection
 void initSocket(DeviceStatus &status);
 
 // Connects socket to a server and updates the status
@@ -54,10 +56,10 @@ void connectSocket(DeviceStatus &status);
 void authenticateDevice(DeviceStatus &status);
 
 // Closes the current socket in case of a failure
-void closeSocket(DeviceStatus &status);
+void closeSocket();
 
 // Sends the current device status
-void sendStatus(DeviceStatus &status, Preferences & prefs);
+void sendStatus(DeviceStatus &status, Preferences &prefs);
 
 // Sends the punches to the server, returns true for OK, false if the punches did not send
 bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount);

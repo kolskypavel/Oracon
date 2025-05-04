@@ -313,6 +313,7 @@ void initTasks()
     throw std::runtime_error("Failed to init LED task");
   }
 
+#ifndef TEST_NO_SI_TASKS
   res = xTaskCreate(
       rs232_serial_task, "rs232_serial_task",
       4096, nullptr, ESP_USB_SERIAL_TASK_PRIORITY, nullptr);
@@ -349,6 +350,7 @@ void initTasks()
     }
   }
   usbReady = true;
+#endif
 
   ESP_LOGI("TASKS", "Tasks init successfuly");
 }
@@ -424,7 +426,7 @@ void setup()
 
   // Intial delay for NB-IOT module
 #ifndef NO_SETUP_TIMEOUT
-  vTaskDelay(pdMS_TO_TICKS(INIT_NBIOT_DELAY * 1000));
+  delay(INIT_NBIOT_DELAY * 1000);
 #endif
 
   // Clear buffer
@@ -439,10 +441,8 @@ void setup()
     // INIT STATUS
     initStatus();
 
-// INIT TASKS
-#ifndef TEST_NO_SI_TASKS
+    // INIT TASKS
     initTasks();
-#endif
 
     currStatus.init = true;
   }
@@ -520,7 +520,7 @@ void loop()
 
         if (received > 0)
         {
-          ESP_LOGI("MAIN:", "Sending punches");
+          ESP_LOGI("MAIN", "Sending punches");
           if (sendPunches(currStatus, punches, received))
           {
             removeRecords(received);
@@ -556,15 +556,15 @@ void loop()
         break;
       }
     }
-    // Non-fatal errors
+    // Non-fatal errors - can recover without restarting socket
     catch (const std::invalid_argument &ex)
     {
-      // TODO: blink led or something
+      // TODO: signal out
       ESP_LOGE("INVALID_ARGUMENT", "Error: %s", ex.what());
       clearInBuffer();
     }
 
-    // Connection error -> disconnect socket
+    // Connection error / invalid state -> disconnect socket and start again
     catch (const SocketException &ex)
     {
       ESP_LOGE("SOCKET_EXCEPTION", "Error: %s", ex.what());
@@ -572,10 +572,10 @@ void loop()
       if (currStatus.socketStatus == SocketStatus::SOCKET_AUTHENTICATED ||
           currStatus.socketStatus == SocketStatus::SOCKET_CONNECTED)
       {
-        closeSocket(currStatus);
+        closeSocket();
       }
       currStatus.socketStatus = SocketStatus::SOCKET_OFF;
     }
   }
-  delay(1000);
+  delay(MAIN_LOOP_DELAY * 1000);
 }

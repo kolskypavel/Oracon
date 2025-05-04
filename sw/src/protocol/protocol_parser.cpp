@@ -195,7 +195,7 @@ std::string punchesToString(const SIRecord punches[], int size)
 
     for (int i = 0; i < size; ++i)
     {
-        ESP_LOGI("Parser:", "Punch: [S %d,C %d, T %s]",
+        ESP_LOGI("PARSER", "Punch: [S %d,C %d, T %s]",
                  punches[i].stationNumber,
                  punches[i].cardNumber,
                  punches[i].time.c_str());

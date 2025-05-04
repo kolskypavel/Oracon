@@ -20,7 +20,6 @@ const std::string COMMAND_CLOSE = "AT+NETCLOSE";
 const std::string COMMAND_RESPONSE_SIM_OK = "+CPIN: READY";
 const std::string COMMAND_RESPONSE_SERVICE = "+CEREG:";
 const std::string COMMAND_RESPONSE_SOCKET_EXISTING = "+NETOPEN: 1";
-const std::string COMMAND_RESPONSE_CONNECTED = "+CIPOPEN:0,\"TCP\"";
 const std::string COMMAND_RESPONSE_SEND = ">";
 const std::string COMMAND_RESPONSE_SEND_ERROR = "+CIPERROR: ";
 const std::string COMMAND_RESPONSE_INCOMMING_DATA = "+CIPRXGET";

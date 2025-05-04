@@ -13,6 +13,7 @@ void writeData(const std::string &data)
 
 void clearInBuffer()
 {
+    delay(1000);
     while (nbiot_serial.available())
     {
         nbiot_serial.read();
@@ -118,7 +119,8 @@ void connectSocket(DeviceStatus &status)
     resp = receiveRawData();
     if (!startsWith(resp, COMMAND_RESPONSE_SERVICE))
     {
-        throw std::invalid_argument("Invalid response for service command");
+        ESP_LOGE("CONNECT", "Invalid response for service command");
+        return;
     }
 
     std::pair value = getValuesFromAt(resp);
@@ -126,32 +128,25 @@ void connectSocket(DeviceStatus &status)
     if (value.second != 1 && value.second != 5)
     {
         ESP_LOGE("CONNECT", "Failed to register to service, code %d", value.second);
+        return;
     }
 
     // Check netopen status
     writeData(COMMAND_CREATE_SOCKET + "?");
     resp = receiveRawData();
 
-    if (!startsWith(resp, COMMAND_RESPONSE_SOCKET_EXISTING))
+    // If socket exists, close it -> leads to undefined behavior
+    if (startsWith(resp, COMMAND_RESPONSE_SOCKET_EXISTING))
     {
-        writeData(COMMAND_CREATE_SOCKET);
-        resp = receiveRawData();
-
-        if (!startsWith(resp, COMMAND_RESPONSE_OK))
-        {
-            ESP_LOGE("CONNECT", "Failed to create socket");
-            return;
-        }
+        closeSocket();
     }
 
-    // Check socket connection status
-    writeData(COMMAND_CONNECT + "?");
+    writeData(COMMAND_CREATE_SOCKET);
     resp = receiveRawData();
 
-    if (startsWith(resp, COMMAND_RESPONSE_CONNECTED))
+    if (!startsWith(resp, COMMAND_RESPONSE_OK))
     {
-        ESP_LOGI("CONNECT", "Device already connected to socket");
-        status.socketStatus = SocketStatus::SOCKET_CONNECTED;
+        ESP_LOGE("CONNECT", "Failed to create socket");
         return;
     }
 
@@ -450,7 +445,7 @@ bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount)
     return false;
 }
 
-void closeSocket(DeviceStatus &status)
+void closeSocket()
 {
     writeData(COMMAND_CLOSE);
     clearInBuffer();

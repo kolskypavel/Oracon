@@ -198,7 +198,7 @@ std::string punchesToString(const SIRecord punches[], int size)
         ESP_LOGI("PARSER", "Punch: [S %d,C %d, T %s]",
                  punches[i].stationNumber,
                  punches[i].cardNumber,
-                 punches[i].time.c_str());
+                 punches[i].time);
 
         JsonObject punchObj = punchesArray.add<JsonObject>();
         punchObj["stationNumber"] = punches[i].stationNumber;

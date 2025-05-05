@@ -2,7 +2,7 @@
 
 const static char *TAG = "SI PARSER";
 
-SIRecord parseSIdata(const uint8_t *data, size_t data_len)
+bool parseSIdata(const uint8_t *data, SIRecord &out)
 {
   uint16_t si_stationnumber = 0;
   uint32_t si_cardnumber = 0;
@@ -32,22 +32,30 @@ SIRecord parseSIdata(const uint8_t *data, size_t data_len)
   // unused
   // si_subsec = data[12];
 
-  SIRecord record;
-  record.cardNumber = si_cardnumber;
-  record.stationNumber = si_stationnumber;
-  char time_buffer[9];
-  snprintf(time_buffer, sizeof(time_buffer), "%02d:%02d:%02d",
-           (si_h12timer / 3600) + (si_fullday ? 12 : 0),
-           (si_h12timer % 3600) / 60,
-           si_h12timer % 60);
-  record.time = std::string(time_buffer);
-
-  return record;
+  // Verify data is valid
+  if (si_cardnumber > 0 &&
+      si_stationnumber > 0 &&
+      si_stationnumber < 512 &&
+      si_fullday <= 1 &&
+      si_h12timer < 43201)
+  {
+    out.cardNumber = si_cardnumber;
+    out.stationNumber = si_stationnumber;
+    if (snprintf(out.time, sizeof(out.time), "%02d:%02d:%02d",
+                 (si_h12timer / 3600) + (si_fullday ? 12 : 0),
+                 (si_h12timer % 3600) / 60,
+                 si_h12timer % 60) == 8)
+    {
+      
+      return true;
+    }
+  }
+  return false;
 }
 
 SIRecord getTestSIRecord()
 {
-  SIRecord record = { 123456, 111, "12:22:20"};
+  SIRecord record = {123456, 111, "12:22:20"};
   return record;
 }
 

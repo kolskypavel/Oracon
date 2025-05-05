@@ -20,12 +20,12 @@ struct SIRecord
 {
   uint32_t cardNumber = 0;
   uint16_t stationNumber = 0;
-  std::string time;
+  char time[9];
 };
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
-SIRecord parseSIdata(const uint8_t *data, size_t data_len);
+bool parseSIdata(const uint8_t *data, SIRecord &out);
 
 // Returns an example SI record for testing purposes
 SIRecord getTestSIRecord();

@@ -70,18 +70,17 @@ bool rx_callback(const uint8_t *data, size_t data_len, void *arg)
   // Check if received data matches SI data - first byte is always FF (skip)
   if (data[1] == BYTE_STX && data[2] == BYTE_PUNCH_DATA && data[19] == BYTE_ETX)
   {
-    SIRecord record = parseSIdata(data + 1, data_len);
+    SIRecord record;
 
-#ifdef TEST_SI_SERIAL_VERBOSE
-    ESP_LOGI("USB", "Parsed SI-Card data from USB serial:[S %d,C %d, T %s]",
-             record.stationNumber,
-             record.cardNumber,
-             record.time.c_str());
-#endif
-
-    // Check if data is somehow valid - cardnumber should never be 0
-    if (record.cardNumber != 0 && record.stationNumber != 0)
+    // Try to parse data
+    if (parseSIdata(data + 1, record))
     {
+#ifdef TEST_SI_SERIAL_VERBOSE
+      ESP_LOGI("USB", "Parsed SI-Card data from USB serial:[S %d,C %d, T %s]",
+               record.stationNumber,
+               record.cardNumber,
+               record.time);
+#endif
       if (!enqueueRecord(record))
       {
         ESP_LOGE("USB", "Queue is full");
@@ -251,18 +250,17 @@ static void rs232_serial_task(void *pvParameter)
           buffer[1] == BYTE_PUNCH_DATA &&
           buffer[18] == BYTE_ETX)
       {
-        SIRecord record = parseSIdata(buffer, read);
+        SIRecord record;
 
-#ifdef TEST_SI_SERIAL_VERBOSE
-        ESP_LOGI("RS232", "Parsed SI-Card data from r232 serial:[S %d,C %d, T %s]",
-                 record.stationNumber,
-                 record.cardNumber,
-                 record.time.c_str());
-#endif
-
-        // Check if data is somehow valid - cardnumber should never be 0
-        if (record.cardNumber != 0 && record.stationNumber != 0)
+        // Try to parse data
+        if (parseSIdata(buffer, record))
         {
+#ifdef TEST_SI_SERIAL_VERBOSE
+          ESP_LOGI("RS232", "Parsed SI-Card data from r232 serial:[S %d,C %d, T %s]",
+                   record.stationNumber,
+                   record.cardNumber,
+                   record.time);
+#endif
           if (!enqueueRecord(record))
           {
             ESP_LOGE("RS232", "Queue is full");

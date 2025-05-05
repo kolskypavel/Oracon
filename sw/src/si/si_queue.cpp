@@ -16,8 +16,7 @@ void initQueue()
     }
 
     // DEBUG
-    // SPIFFS.remove(QUEUE_DATA_FILE_NAME);
-    // SPIFFS.remove(QUEUE_METADATA_FILE_NAME);
+    //  SPIFFS.format();
 
     if (SPIFFS.exists(QUEUE_DATA_FILE_NAME))
     {

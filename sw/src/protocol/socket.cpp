@@ -13,7 +13,7 @@ void writeData(const std::string &data)
 
 void clearInBuffer()
 {
-    delay(1000);
+    delay(2000);
     while (nbiot_serial.available())
     {
         nbiot_serial.read();
@@ -91,20 +91,6 @@ void initSocket(DeviceStatus &status)
     {
         ESP_LOGE("INIT", "Failed to set buffered output");
     }
-
-    // #ifndef TEST_ORACON_NO_TIMEOUT
-    //     std::string data = COMMAND_SET_TIMEOUT;
-    //     data += std::to_string(SOCKET_OPEN_TIMEOUT * 1000) +
-    //             "," + std::to_string(SOCKET_CONNECT_TIMEOUT * 1000) +
-    //             "," + std::to_string(SOCKET_READ_TIMEOUT * 1000);
-
-    //     writeData(data);
-    //     resp = receiveRawData();
-    //     if (!startsWith(resp, COMMAND_RESPONSE_OK))
-    //     {
-    //         throw std::runtime_error("Failed to set timeouts");
-    //     }
-    // #endif
 
     ESP_LOGI("CONNECT", "Socket init successful");
     status.socketStatus = SocketStatus::SOCKET_INIT;
@@ -467,11 +453,11 @@ void getSignalStrength(DeviceStatus &status)
     // NB-Iot signal not detectable
     if (rssi == 99)
     {
-        status.signal = 113;
+        status.signal = MAX_SIGNAL_VALUE;
     }
     // Convert RSSI to dBm using TS 27.007 Section 8.5
     else if (rssi >= 0 && rssi <= 31)
     {
-        status.signal = 113 - (rssi * 2); // dBm calculation
+        status.signal = MAX_SIGNAL_VALUE - (rssi * 2); // dBm calculation
     }
 }

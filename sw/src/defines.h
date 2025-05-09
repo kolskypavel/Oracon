@@ -2,29 +2,10 @@
 #define nbiot_serial Serial1
 #define rs232_serial Serial2
 
-// SERIAL PINS
-#define RX_NBIOT_PIN 16
-#define TX_NBIOT_PIN 15
-
-#define RX_RS232_PIN 18
-#define TX_RS232_PIN 17 
-
 // LEDS
 #define MILLIS_TO_MICROS(a) (int)(a * 1000)
 #define LED_TASK_PRIORITY 15
 #define STATUS_LED_ERROR_FREQ 2
-
-#define STATUS_LED_R_PIN 42
-#define STATUS_LED_G_PIN 1
-#define STATUS_LED_B_PIN 2
-
-#define SIGNAL_LED_R_PIN 6
-#define SIGNAL_LED_G_PIN 4
-#define SIGNAL_LED_B_PIN 5
-
-#define BATTERY_LED_R_PIN 3
-#define BATTERY_LED_G_PIN 8
-#define BATTERY_LED_B_PIN 7
 
 // SERIAL COMMUNICATION
 #define ESP_USB_SERIAL_BAUDRATE 38400 // 115200
@@ -44,13 +25,14 @@
 #define SI_RS232_SERIAL_BAUDRATE 4800
 
 // BATTERY
-#define MAX_BATTERY_LEVEL 3.7
-#define BATTERY_MEASURE_PORT 12
+#define MIN_BATTERY_LEVEL 3.3
+#define BATTERY_ADC_STEPS 4095
 
 #define BATTERY_LEVEL_OK 60
 #define BATTERY_LEVEL_MEDIUM 30
 
 // SIGNAL
+#define MAX_SIGNAL_VALUE 113
 #define SIGNAL_LEVEL_OK 70
 #define SIGNAL_LEVEL_MEDIUM 100
 
@@ -58,6 +40,8 @@
 #define WHITESPACES " \t\n\r\f\v"
 
 // QUEUE MANIPULATION
+#define MAX_SI_DATA_SIZE 50
+#define SI_RECORD_SIZE 19
 #define PUNCH_QUEUE_SIZE 20
 #define PUNCH_BUFFER_SIZE 5
 #define QUEUE_DATA_FILE_NAME "/queue_data.bin"
@@ -69,26 +53,44 @@
 #define MAX_DER_BUFF_SIZE 2048
 #define AES_KEY_SIZE 16
 
-// SOCKET
-#define SOCKET_OPEN_TIMEOUT 5
-#define SOCKET_CONNECT_TIMEOUT 7
+// SOCKET - adjust timeouts in case of slow connection 
 #define SOCKET_CONNECT_READ_TIMEOUT 12
-#define SOCKET_READ_TIMEOUT 25
+#define SOCKET_READ_TIMEOUT 30
 #define SOCKET_READ_MODE "2" // 2 - ascii, 3 - hex
 #define SOCKET_READ_SIZE 200
+
+// -------- CONFIGURE TO MATCH YOUR SCHEME ---------------
+
+// PINS
+#define RX_NBIOT_PIN 16
+#define TX_NBIOT_PIN 15
+
+#define RX_RS232_PIN 18
+#define TX_RS232_PIN 17 
+
+#define STATUS_LED_R_PIN 42
+#define STATUS_LED_G_PIN 1
+#define STATUS_LED_B_PIN 2
+
+#define SIGNAL_LED_R_PIN 6
+#define SIGNAL_LED_G_PIN 4
+#define SIGNAL_LED_B_PIN 5
+
+#define BATTERY_LED_R_PIN 3
+#define BATTERY_LED_G_PIN 8
+#define BATTERY_LED_B_PIN 7
+
+#define BATTERY_MEASURE_PORT 12
 
 // LOGIC
 #define MAIN_LOOP_DELAY 1
 #define MIN_STATUS_DELAY 20
 #define MAX_STATUS_DELAY 40
-#define INIT_NBIOT_DELAY 10
-#define MAX_SIGNAL_VALUE 103
-#define SYSTEM_STATS_MEASURE_DELAY 10
-#define MAX_SI_DATA_SIZE 50
-#define SI_RECORD_SIZE 19
+#define INIT_NBIOT_DELAY 10                 // Initial delay for the NB-IOT module, based on the docs
+#define SYSTEM_STATS_MEASURE_DELAY 10       // How often should system stats (signal and battery) be measured
 
 // TESTING
-// #define LIMIT_NB_IOT_SERIAL                    // Checks for max length of received message
+//#define LIMIT_NB_IOT_SERIAL                    // Checks for max length of received message
 //#define NO_SETUP_TIMEOUT                          // Delay the device after startup to load NB-IOT module
 //#define TEST_ORACON_NO_TIMEOUT                    // Don't timeout on the socket connection
 //#define TEST_WOLFCRYPT                            // Perform test of encrypt/decrypt and signing

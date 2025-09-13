@@ -88,54 +88,13 @@ std::string messageTypeToString(ProtocolMessageType type)
 {
     switch (type)
     {
-    case TYPE_ACK:
-        return "ACK";
-    case TYPE_NACK:
-        return "NACK";
-    case TYPE_CONNECT:
-        return "CONNECT";
     case TYPE_STATUS:
         return "STATUS";
     case TYPE_PUNCH:
         return "PUNCH";
-    case TYPE_CONF:
-        return "CONF";
     default:
         // Unknown type -> exception
         throw std::invalid_argument("Invalid protocol message type");
-    }
-}
-
-ProtocolMessageType stringToMessageType(const std::string &stringType)
-{
-    if (stringType == "ACK")
-    {
-        return ProtocolMessageType::TYPE_ACK;
-    }
-    else if (stringType == "NACK")
-    {
-        return ProtocolMessageType::TYPE_NACK;
-    }
-    else if (stringType == "CONNECT")
-    {
-        return ProtocolMessageType::TYPE_CONNECT;
-    }
-    else if (stringType == "STATUS")
-    {
-        return ProtocolMessageType::TYPE_STATUS;
-    }
-    else if (stringType == "PUNCH")
-    {
-        return ProtocolMessageType::TYPE_PUNCH;
-    }
-    else if (stringType == "CONF")
-    {
-        return ProtocolMessageType::TYPE_CONF;
-    }
-    else
-    {
-        // Unknown type -> exception
-        throw std::invalid_argument("Invalid string for protocol message type");
     }
 }
 
@@ -163,8 +122,8 @@ std::string messageToString(const ProtocolMessage &message)
 std::string statusToString(const DeviceStatus &status)
 {
     JsonDocument doc;
-    JsonObject configJson = doc["config"].to<JsonObject>();
-    configJson["statusDelay"] = status.config.statusDelay;
+    doc["type"] = "STATUS";
+    doc["device_key"] = status.deviceKey;
 
     JsonObject statusObj = doc["status"].to<JsonObject>();
     statusObj["battery"] = status.battery;
@@ -176,21 +135,11 @@ std::string statusToString(const DeviceStatus &status)
     return output;
 }
 
-std::string punchToString(const SIRecord &record)
+std::string punchesToString(const SIRecord punches[], int size, const DeviceStatus &status)
 {
     JsonDocument doc;
-    doc["stationNumber"] = record.stationNumber;
-    doc["cardNumber"] = record.cardNumber;
-    doc["time"] = record.time;
-
-    std::string output;
-    serializeJson(doc, output);
-    return output;
-}
-
-std::string punchesToString(const SIRecord punches[], int size)
-{
-    JsonDocument doc;
+    doc["type"] = "PUNCH";
+    doc["device_key"] = status.deviceKey;
     JsonArray punchesArray = doc["punches"].to<JsonArray>();
 
     for (int i = 0; i < size; ++i)
@@ -201,104 +150,14 @@ std::string punchesToString(const SIRecord punches[], int size)
                  punches[i].time);
 
         JsonObject punchObj = punchesArray.add<JsonObject>();
-        punchObj["stationNumber"] = punches[i].stationNumber;
-        punchObj["cardNumber"] = punches[i].cardNumber;
-        punchObj["time"] = punches[i].time;
+        punchObj["station_number"] = punches[i].stationNumber;
+        punchObj["si_number"] = punches[i].cardNumber;
+        punchObj["punch_time"] = punches[i].time;
     }
 
     std::string output;
     serializeJson(doc, output);
     return output;
-}
-
-ProtocolMessage parseMessage(const std::string &message)
-{
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, message);
-
-    std::string stringType = doc["type"] | "unknown";
-    int deviceId = doc["device"] | -1;
-
-    if (!doc["data"].is<JsonObject>())
-    {
-        throw std::invalid_argument("Invalid or missing 'data' field in message");
-    }
-
-    JsonObject dataObject = doc["data"].as<JsonObject>();
-
-    std::string data;
-    serializeJson(dataObject, data);
-
-    ESP_LOGI("PARSE", "Type: %s, Device: %d, Data: %s", stringType.c_str(), deviceId, data.c_str());
-
-    if (error || stringType == "unknown" || deviceId == -1)
-    {
-        throw std::invalid_argument("Failed to parse message");
-    }
-
-    ProtocolMessage msg;
-    msg.type = stringToMessageType(stringType);
-    msg.deviceId = deviceId;
-    msg.data = data;
-
-    return msg;
-}
-
-std::string dataToSignature(const std::string &data)
-{
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, data);
-    std::string signature = doc["signature"] | "unknown";
-
-    // Error when parsing
-    if (error || signature == "unknown")
-    {
-        throw std::invalid_argument("Invalid signature format");
-    }
-
-    return signature;
-}
-
-DeviceConfig stringToConfig(const std::string &data)
-{
-    DeviceConfig config;
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, data);
-    JsonObject configJson = doc["config"].as<JsonObject>();
-
-    int statusDelay = configJson["statusDelay"] | -1;
-
-    ESP_LOGI("CONF", "Parsing config message %s, %d", data.c_str(), statusDelay);
-
-    // Error when parsing
-    if (error || statusDelay == -1)
-    {
-        throw std::invalid_argument("Invalid configuration format");
-    }
-
-    if (statusDelay < MIN_STATUS_DELAY || statusDelay > MAX_STATUS_DELAY)
-    {
-        throw std::invalid_argument("Invalid status delay: " + statusDelay);
-    }
-
-    config.statusDelay = statusDelay;
-    return config;
-}
-
-std::string generateSignatureData(const DeviceStatus &status)
-{
-    std::string sigData = std::to_string(status.deviceId);
-    byte out[MAX_SIGNATURE_SIZE];
-    word32 outLen = MAX_SIGNATURE_SIZE;
-
-    generateSignature(sigData, *status.privateKey, out, outLen);
-    JsonDocument doc;
-    doc["signature"] = dataToHex(out, outLen);
-
-    std::string json;
-    serializeJson(doc, json);
-
-    return json;
 }
 
 const char *getCause(uint8_t errCode)

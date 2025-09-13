@@ -10,7 +10,7 @@ uint8_t writeIndex = 0;
 
 void initQueue()
 {
-    if (!SPIFFS.begin())
+    if (!SPIFFS.begin(true))
     {
         throw std::runtime_error("QUEUE: Failed to mount file system");
     }

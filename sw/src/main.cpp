@@ -375,7 +375,7 @@ void initLEDs()
 
 void initStatus()
 {
-  currStatus.socketStatus = SocketStatus::SOCKET_OFF;
+  currStatus.httpStatus = HttpStatus::HTTP_OFF;
   currStatus.punchesReceived = 0;
   currStatus.signal = 113;
   currStatus.battery = 0;
@@ -408,6 +408,9 @@ void setup()
   usb_serial.begin(115200);
   rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RX_RS232_PIN, TX_RS232_PIN);
   nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RX_NBIOT_PIN, TX_NBIOT_PIN);
+
+  pinMode(BOOST_ENABLE, OUTPUT);
+  digitalWrite(BOOST_ENABLE, 1);
 
   // INIT LEDS
   initLEDs();
@@ -505,9 +508,7 @@ void loop()
       measureStartSeconds = getCurrentTime();
 
       // MAIN LOOP
-      switch (currStatus.socketStatus)
-      {
-      case SocketStatus::SOCKET_AUTHENTICATED:
+      if (currStatus.httpStatus == HttpStatus::HTTP_INIT)
       {
         status_led.setColorPreset(StatusLED::GREEN);
 
@@ -536,44 +537,21 @@ void loop()
           statusStartSeconds = getCurrentTime();
         }
       }
-      break;
 
-      case SocketStatus::SOCKET_CONNECTED:
-        status_led.setColorPreset(StatusLED::ORANGE);
-        authenticateDevice(currStatus);
-        break;
-
-      case SocketStatus::SOCKET_INIT:
-        status_led.setColorPreset(StatusLED::ORANGE);
-        connectSocket(currStatus);
-        break;
-
-      case SocketStatus::SOCKET_OFF:
-        status_led.setColorPreset(StatusLED::RED);
-        initSocket(currStatus);
-        break;
-      }
-    }
-    // Non-fatal errors - can recover without restarting socket
-    catch (const std::invalid_argument &ex)
-    {
-      // TODO: signal out
-      ESP_LOGE("INVALID_ARGUMENT", "Error: %s", ex.what());
-      clearInBuffer();
-    }
-
-    // Connection error / invalid state -> disconnect socket and start again
-    catch (const SocketException &ex)
-    {
-      ESP_LOGE("SOCKET_EXCEPTION", "Error: %s", ex.what());
-
-      if (currStatus.socketStatus == SocketStatus::SOCKET_AUTHENTICATED ||
-          currStatus.socketStatus == SocketStatus::SOCKET_CONNECTED)
+      else
       {
-        closeSocket();
+        status_led.setColorPreset(StatusLED::ORANGE);
+        initHttp(currStatus);
+        break;
       }
-      currStatus.socketStatus = SocketStatus::SOCKET_OFF;
+      
+      // Non-fatal errors - can recover without restarting socket
+      catch (const std::invalid_argument &ex)
+      {
+        // TODO: signal out
+        ESP_LOGE("INVALID_ARGUMENT", "Error: %s", ex.what());
+        clearInBuffer();
+      }
     }
+    delay(MAIN_LOOP_DELAY * 1000);
   }
-  delay(MAIN_LOOP_DELAY * 1000);
-}

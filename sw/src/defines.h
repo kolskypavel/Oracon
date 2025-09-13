@@ -62,25 +62,29 @@
 // -------- CONFIGURE TO MATCH YOUR SCHEME ---------------
 
 // PINS
-#define RX_NBIOT_PIN 16
-#define TX_NBIOT_PIN 15
+#define RX_NBIOT_PIN 17
+#define TX_NBIOT_PIN 18
 
-#define RX_RS232_PIN 18
-#define TX_RS232_PIN 17 
+#define RX_RS232_PIN 13
+#define TX_RS232_PIN 12 
 
 #define STATUS_LED_R_PIN 42
-#define STATUS_LED_G_PIN 1
-#define STATUS_LED_B_PIN 2
+#define STATUS_LED_G_PIN 40
+#define STATUS_LED_B_PIN 41
 
-#define SIGNAL_LED_R_PIN 6
-#define SIGNAL_LED_G_PIN 4
-#define SIGNAL_LED_B_PIN 5
+#define SIGNAL_LED_R_PIN 39
+#define SIGNAL_LED_G_PIN 37
+#define SIGNAL_LED_B_PIN 38
 
-#define BATTERY_LED_R_PIN 3
-#define BATTERY_LED_G_PIN 8
-#define BATTERY_LED_B_PIN 7
+#define BATTERY_LED_R_PIN 2
+#define BATTERY_LED_G_PIN 3
+#define BATTERY_LED_B_PIN 4
 
-#define BATTERY_MEASURE_PORT 12
+#define CHG_PIN 34
+#define STBY_PIN 33
+#define BOOST_ENABLE 48
+
+#define BATTERY_MEASURE_PORT 16
 
 // LOGIC
 #define MAIN_LOOP_DELAY 1

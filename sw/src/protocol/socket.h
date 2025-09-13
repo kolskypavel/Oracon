@@ -11,7 +11,6 @@ Implementation of the ORacon protocol
 #include "protocol_parser.h"
 #include "serial_commands.h"
 #include "si/si_parser.h"
-#include "crypto/encryptor.h"
 #include "exceptions.h"
 #include "defines.h"
 #include "secrets.h"
@@ -23,7 +22,7 @@ void writeData(const std::string &data);
 void clearInBuffer();
 
 // Sends data and checks if they got received correctly
-void sendData(const byte *data, int dataLen, int socketId);
+void sendHttpData(const std::string data, DeviceStatus &status);
 
 // Receives raw data from the serial port
 std::string receiveRawData();
@@ -31,32 +30,11 @@ std::string receiveRawData();
 // Receives and parses the raw data - converts and decrypts
 std::string getData(DeviceStatus &status);
 
-// Sends given protocol message
-void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status);
-
 // Gets a new message from the server
 ProtocolMessage getNewMessage(DeviceStatus &status);
 
-// Init message with data from status struct
-void initMessage(ProtocolMessage &msg, DeviceStatus &status);
-
-// Sends confirmation message
-void sendAck(DeviceStatus &status);
-
-// Sends negative message - not accepted, invalid config format
-void sendNack(DeviceStatus &status);
-
 // Inits the socket for connection
-void initSocket(DeviceStatus &status);
-
-// Connects socket to a server and updates the status
-void connectSocket(DeviceStatus &status);
-
-// Attempts to authenticate device using OraCon handshake
-void authenticateDevice(DeviceStatus &status);
-
-// Closes the current socket in case of a failure
-void closeSocket();
+void initHttp(DeviceStatus &status);
 
 // Sends the current device status
 void sendStatus(DeviceStatus &status, Preferences &prefs);

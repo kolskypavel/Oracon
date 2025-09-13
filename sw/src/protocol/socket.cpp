@@ -69,7 +69,7 @@ std::string receiveRawData()
     return out;
 }
 
-void initSocket(DeviceStatus &status)
+void initHttp(DeviceStatus &status)
 {
     std::string resp;
 
@@ -82,23 +82,6 @@ void initSocket(DeviceStatus &status)
         ESP_LOGE("INIT", "SIM not connected");
         return;
     }
-
-    // Set socket to buffer receiving data
-    writeData(COMMAND_RECEIVE_DATA + "1");
-    resp = receiveRawData();
-
-    if (!startsWith(resp, COMMAND_RESPONSE_OK))
-    {
-        ESP_LOGE("INIT", "Failed to set buffered output");
-    }
-
-    ESP_LOGI("CONNECT", "Socket init successful");
-    status.socketStatus = SocketStatus::SOCKET_INIT;
-}
-
-void connectSocket(DeviceStatus &status)
-{
-    std::string resp;
 
     // Check service status
     writeData(COMMAND_CHECK_SERVICE);
@@ -117,324 +100,91 @@ void connectSocket(DeviceStatus &status)
         return;
     }
 
-    // Check netopen status
-    writeData(COMMAND_CREATE_SOCKET + "?");
-    resp = receiveRawData();
-
-    // If socket exists, close it -> leads to undefined behavior
-    if (startsWith(resp, COMMAND_RESPONSE_SOCKET_EXISTING))
-    {
-        closeSocket();
-    }
-
-    writeData(COMMAND_CREATE_SOCKET);
+    // Set socket to buffer receiving data
+    writeData(COMMAND_HTTP_INIT);
     resp = receiveRawData();
 
     if (!startsWith(resp, COMMAND_RESPONSE_OK))
     {
-        ESP_LOGE("CONNECT", "Failed to create socket");
+        ESP_LOGE("INIT", "Failed to init http");
         return;
     }
 
-    std::string connect = COMMAND_CONNECT;
-    connect += "=0,\"TCP\",";
-    connect += SERVER_IP;
-    connect += ",";
-    connect += SERVER_PORT;
-
-    writeData(connect);
-    delay(SOCKET_CONNECT_READ_TIMEOUT * 1000);
-    resp = receiveRawData();
-
-    std::pair<int, int> values = getValuesFromAt(resp);
-
-    if (values.second == 0)
-    {
-        ESP_LOGI("CONNECT", "Sucessfully connected to socket");
-        status.socketStatus = SocketStatus::SOCKET_CONNECTED;
-        return;
-    }
-    else
-    {
-        ESP_LOGE("CONNECT", "Failed to connect, cause %s", getCause(values.second));
-    }
+    ESP_LOGI("CONNECT", "Socket init successful");
+    status.httpStatus = HttpStatus::HTTP_INIT;
 }
 
-void sendData(const byte *data, int dataLen, int socketId)
+bool sendHttpData(const std::string data, DeviceStatus &status)
 {
-    std::string buffer;
-    std::string hexData = dataToHex(data, dataLen);
-    hexData += "\n";
-
-    buffer += COMMAND_SEND;
-    buffer += std::to_string(socketId);
-    buffer += ",";
-    buffer += std::to_string(hexData.size());
 
     // Send sending command
     writeData(buffer);
     buffer = receiveRawData();
-
-    if (startsWith(buffer, COMMAND_RESPONSE_SEND_ERROR) || startsWith(buffer, COMMAND_RESPONSE_CLOSE_SOCKET))
-    {
-        throw SocketException("Socket not open / closed by server");
-    }
-    else if (buffer != COMMAND_RESPONSE_SEND)
-    {
-        throw std::invalid_argument("Invalid response to send command:" + buffer);
-    }
 
     // Send actual data
     writeData(hexData);
 
     buffer = receiveRawData();
 
-    // Wait for positive reply
-    if (startsWith(buffer, COMMAND_RESPONSE_OK))
-    {
-        return;
-    }
-    else if (startsWith(buffer, COMMAND_RESPONSE_CLOSE_SOCKET))
-    {
-        throw SocketException("Socket closed by server");
-    }
+    // // Wait for positive reply
+    // if (startsWith(buffer, COMMAND_RESPONSE_OK))
+    // {
+    //     return;
+    // }
+    // else if (startsWith(buffer, COMMAND_RESPONSE_CLOSE_SOCKET))
+    // {
+    //     throw SocketException("Socket closed by server");
+    // }
 
-    // TODO: detailed error handling
-    else if (startsWith(buffer, COMMAND_RESPONSE_ERROR))
-    {
-        throw SocketException("Error when sending data");
-    }
+    // // TODO: detailed error handling
+    // else if (startsWith(buffer, COMMAND_RESPONSE_ERROR))
+    // {
+    //     throw SocketException("Error when sending data");
+    // }
 }
 
-void sendMessage(const ProtocolMessage &protocolMessage, DeviceStatus &status)
-{
-    std::string data = messageToString(protocolMessage);
-
-#ifdef TEST_ORACON_NO_ENCRYPTION
-    sendData(reinterpret_cast<const byte *>(data.data()), data.size(), status.socketId);
-#else
-    byte buf[MAX_MESSAGE_SIZE];
-    word32 encSize;
-
-    encryptDataAes(data, status.aesKey, buf, encSize);
-    sendData(buf, encSize, status.socketId);
-#endif
-
-    ESP_LOGI("SENDMSG", "Sucessfully sent data");
-}
-
-std::string getData(DeviceStatus &status)
-{
-    std::string received = receiveRawData();
-
-    if (startsWith(received, COMMAND_RESPONSE_INCOMMING_DATA))
-    {
-        std::string buffer, trimmed = "";
-        int remaining = 0;
-
-        do
-        {
-            writeData(COMMAND_RECEIVE_DATA + SOCKET_READ_MODE + ",0," + std::to_string(SOCKET_READ_SIZE));
-            received = receiveRawData();
-            std::string header = getSubstr(received, COMMAND_RESPONSE_INCOMMING_DATA, "\r\n");
-            remaining = std::stoi(getSuffix(header, ","));
-
-            trimmed = getSubstr(received, "\r\n", "\r\nOK"); // Trim the message indicator
-            trimmString(trimmed);
-            buffer += trimmed;
-
-        } while (remaining > 0);
-
-        std::string out;
-        byte rawData[MAX_MESSAGE_SIZE];
-        hexToData(buffer, rawData);
-
-#ifdef TEST_ORACON_NO_ENCRYPTION
-        out = std::string(reinterpret_cast<const char *>(rawData), buffer.size() / 2);
-#else
-        decryptDataAes(rawData, (buffer.size() / 2), status.aesKey, out);
-#endif
-        ESP_LOGI("GETDATA", "Sucessfully received data %s", out.c_str());
-        return out;
-    }
-    else if (startsWith(received, COMMAND_RESPONSE_CLOSE_SOCKET))
-    {
-        throw SocketException("Socket closed by server");
-    }
-
-    throw std::invalid_argument("Invalid format when receiving data");
-}
-
-ProtocolMessage getNewMessage(DeviceStatus &status)
-{
-    std::string received = getData(status);
-    ProtocolMessage msg = parseMessage(received);
-    return msg;
-}
-
-void initMessage(ProtocolMessage &msg, DeviceStatus &status)
-{
-    msg.deviceId = status.deviceId;
-}
-
-void sendAck(DeviceStatus &status)
-{
-    ESP_LOGI("ACK", "Sending ACK");
-    ProtocolMessage msg;
-    initMessage(msg, status);
-    msg.type = ProtocolMessageType::TYPE_ACK;
-    return sendMessage(msg, status);
-}
-
-void sendNack(DeviceStatus &status)
-{
-    ESP_LOGI("NACK", "Sending NACK");
-    ProtocolMessage msg;
-    initMessage(msg, status);
-    msg.type = ProtocolMessageType::TYPE_NACK;
-
-    sendMessage(msg, status);
-}
-
-void verifyServer(const std::string &data, DeviceStatus &status)
-{
-    std::string signature = dataToSignature(data);
-    byte buff[MAX_SIGNATURE_SIZE];
-
-    hexToData(signature, buff);
-    word32 buffLength = signature.size() / 2; // Hex encoded string - actual size is half
-
-    // Server ID should be always 0
-    if (!verifySignature("0", *status.serverKey, buff, buffLength))
-    {
-        throw std::invalid_argument("Failed to verify server signature");
-    }
-}
-
-void authenticateDevice(DeviceStatus &status)
-{
-#ifndef TEST_ORACON_NO_ENCRYPTION
-    // Generate and send AES key
-    generateAesKey(status.aesKey);
-    ESP_LOGI("AES KEY", "%s", dataToHex(status.aesKey, AES_KEY_SIZE).c_str());
-    byte encrypted[MAX_MESSAGE_SIZE];
-    int encSize = MAX_MESSAGE_SIZE;
-    encryptDataRsa(status.aesKey, AES_KEY_SIZE, *status.serverKey, encrypted, encSize);
-    sendData(encrypted, encSize, status.socketId);
-#endif
-
-    // Send connect message
-    ProtocolMessage msg;
-    initMessage(msg, status);
-    msg.type = ProtocolMessageType::TYPE_CONNECT;
-    msg.data = generateSignatureData(status);
-
-    sendMessage(msg, status);
-    ESP_LOGI("AUTH", "Connect sent");
-
-    try
-    {
-        // Wait for connect response
-        msg = getNewMessage(status);
-
-        if (msg.type == ProtocolMessageType::TYPE_CONNECT)
-        {
-            ESP_LOGI("AUTH", "Connect message received");
-
-#ifdef TEST_ORACON_NO_SIGNATURE_VERIFICATION
-            sendAck(status);
-            status.socketStatus = SocketStatus::SOCKET_AUTHENTICATED;
-            ESP_LOGI("AUTH", "Sucessfully authenticated device");
-            return;
-#else
-            verifyServer(msg.data, status);
-            sendAck(status);
-            status.socketStatus = SocketStatus::SOCKET_AUTHENTICATED;
-            ESP_LOGI("AUTH", "Sucessfully authenticated device");
-            return;
-#endif
-        }
-        ESP_LOGE("AUTH", "Connect message not received");
-    }
-    catch (const std::invalid_argument &ex)
-    {
-        ESP_LOGE("AUTH", "Error: %s", ex.what());
-    }
-
-    // Throw exception to terminate socket connection
-    throw SocketException("Failed to authenticate device");
-}
 
 void sendStatus(DeviceStatus &status, Preferences &prefs)
 {
     ProtocolMessage msg;
-    initMessage(msg, status);
+    msg.deviceId = status.deviceId;
     msg.type = ProtocolMessageType::TYPE_STATUS;
     msg.data = statusToString(status);
 
-    sendMessage(msg, status);
+    bool sent = sendMessage(msg, status);
 
-    msg = getNewMessage(status);
-
-    if (msg.type == ProtocolMessageType::TYPE_CONF)
+    if (sent)
     {
-        ESP_LOGI("STATUS", "Received config message");
-        try
-        {
-            DeviceConfig config = stringToConfig(msg.data);
-            status.config = config;
-
-            // Save to device flash memory -> persistent after reboot
-            prefs.putUChar("statusDelay", config.statusDelay);
-            sendAck(status);
-        }
-        // Error when receiving configuration
-        catch (const std::invalid_argument &exception)
-        {
-            ESP_LOGE("STATUS", "Failed to parse config message");
-            sendNack(status);
-        }
+        ESP_LOGI("STATUS", "Status succesfully received by server");
+        return true;
     }
-    else if (msg.type == ProtocolMessageType::TYPE_ACK)
-    {
-        // Everything OK
-        ESP_LOGI("STATUS", "Status received by server");
-        return;
-    }
-    // Status not accepted by server
     else
     {
-        throw SocketException("Status not received by server - NACK");
+        ESP_LOGE("STATUS", "Status not received by server");
+        return false;
     }
 }
 
 bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount)
 {
     ProtocolMessage msg;
-    initMessage(msg, status);
+    msg.deviceId = status.deviceId;
     msg.type = ProtocolMessageType::TYPE_PUNCH;
     msg.data = punchesToString(punches, punchCount);
 
     ESP_LOGI("PUNCH", "Sending %d punches", punchCount);
-    sendMessage(msg, status);
+    bool sent = sendMessage(msg, status);
 
-    msg = getNewMessage(status);
-
-    // Get confirmation
-    if (msg.type == ProtocolMessageType::TYPE_ACK)
+    if (sent)
     {
-        ESP_LOGI("PUNCH", "Punches successfully received by server");
+        ESP_LOGI("PUNCH", "Punches succesfully received by server");
         return true;
     }
-
-    ESP_LOGE("PUNCH", "Punches not received by server");
-    return false;
-}
-
-void closeSocket()
-{
-    writeData(COMMAND_CLOSE);
-    clearInBuffer();
+    else
+    {
+        ESP_LOGE("PUNCH", "Punches not received by server");
+        return false;
+    }
 }
 
 void getSignalStrength(DeviceStatus &status)

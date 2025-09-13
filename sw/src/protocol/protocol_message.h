@@ -7,12 +7,8 @@
 
 enum ProtocolMessageType
 {
-    TYPE_ACK,
-    TYPE_NACK,
-    TYPE_CONNECT,
     TYPE_STATUS,
-    TYPE_PUNCH,
-    TYPE_CONF
+    TYPE_PUNCH
 };
 
 struct ProtocolMessage
@@ -21,5 +17,4 @@ struct ProtocolMessage
     uint16_t deviceId;
     std::string token;
     std::string data;
-    std::string signature;
 };

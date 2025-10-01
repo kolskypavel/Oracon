@@ -100,13 +100,21 @@ void initHttp(DeviceStatus &status)
         return;
     }
 
-    // Set socket to buffer receiving data
+    // Set socket to init HTTP
     writeData(COMMAND_HTTP_INIT);
     resp = receiveRawData();
 
     if (!startsWith(resp, COMMAND_RESPONSE_OK))
     {
-        ESP_LOGE("INIT", "Failed to init http");
+        ESP_LOGE("INIT", "Failed to init HTTP");
+        return;
+    }
+
+    // Set the url address
+    writeData(COMMAND_HTTP_SET_PARAMETERS + COMMAND_HTTP_URL + SERVER_ADDRESS + "\"");
+    if (!startsWith(resp, COMMAND_RESPONSE_OK))
+    {
+        ESP_LOGE("INIT", "Failed to set URL");
         return;
     }
 
@@ -116,64 +124,81 @@ void initHttp(DeviceStatus &status)
 
 bool sendHttpData(const std::string data, DeviceStatus &status)
 {
+    std::string buffer;
 
-    // Send sending command
-    writeData(buffer);
-    buffer = receiveRawData();
-
-    // Send actual data
-    writeData(hexData);
+    // Add data
+    writeData(COMMAND_HTTP_DATA);
 
     buffer = receiveRawData();
+    if (!startsWith(buffer, COMMAND_RESPONSE_OK))
+    {
+        ESP_LOGE("HTTP", "Failed to set HTTP data");
+        return false;
+    }
 
-    // // Wait for positive reply
-    // if (startsWith(buffer, COMMAND_RESPONSE_OK))
-    // {
-    //     return;
-    // }
-    // else if (startsWith(buffer, COMMAND_RESPONSE_CLOSE_SOCKET))
-    // {
-    //     throw SocketException("Socket closed by server");
-    // }
+    // Send the request
+    writeData(COMMAND_HTTP_ACTION + std::to_string(HTTP_PUT));
 
-    // // TODO: detailed error handling
-    // else if (startsWith(buffer, COMMAND_RESPONSE_ERROR))
-    // {
-    //     throw SocketException("Error when sending data");
-    // }
+    buffer = receiveRawData();
+    if (!startsWith(buffer, COMMAND_RESPONSE_OK))
+    {
+        ESP_LOGE("HTTP", "Failed to send HTTP request");
+        return false;
+    }
+
+    // Get the response code
+    writeData(COMMAND_HTTP_READ_RESPONSE);
+    buffer = receiveRawData();
+
+    int replyStatus = getStatusFromHttpHead(buffer);
+
+    switch (replyStatus)
+    {
+    case HTTP_STATUS_OK:
+    {
+        ESP_LOGI("HTTP", "Data sent successfully");
+        return true;
+    }
+    break;
+    case HTTP_STATUS_BAD_REQUEST:
+    case HTTP_STATUS_NOT_FOUND:
+    {
+        ESP_LOGE("HTTP", "Incorrect / missing API key");
+        return false;
+    }
+    break;
+
+    default:
+    {
+        ESP_LOGE("HTTP", "Unknown reply status");
+        break;
+    }
+    }
+    return false;
 }
-
 
 void sendStatus(DeviceStatus &status, Preferences &prefs)
 {
-    ProtocolMessage msg;
-    msg.deviceId = status.deviceId;
-    msg.type = ProtocolMessageType::TYPE_STATUS;
-    msg.data = statusToString(status);
 
-    bool sent = sendMessage(msg, status);
+    std::string msg = statusToString(status);
+    bool sent = sendHttpData(msg, status);
 
     if (sent)
     {
         ESP_LOGI("STATUS", "Status succesfully received by server");
-        return true;
     }
     else
     {
         ESP_LOGE("STATUS", "Status not received by server");
-        return false;
     }
 }
 
 bool sendPunches(DeviceStatus &status, SIRecord punches[], int punchCount)
 {
-    ProtocolMessage msg;
-    msg.deviceId = status.deviceId;
-    msg.type = ProtocolMessageType::TYPE_PUNCH;
-    msg.data = punchesToString(punches, punchCount);
+    std::string msg = punchesToString(punches, punchCount, status);
 
     ESP_LOGI("PUNCH", "Sending %d punches", punchCount);
-    bool sent = sendMessage(msg, status);
+    bool sent = sendHttpData(msg, status);
 
     if (sent)
     {

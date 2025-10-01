@@ -84,40 +84,6 @@ std::pair<int, int> getValuesFromAt(const std::string &command)
     throw std::invalid_argument("Invalid command format - can't extract values");
 }
 
-std::string messageTypeToString(ProtocolMessageType type)
-{
-    switch (type)
-    {
-    case TYPE_STATUS:
-        return "STATUS";
-    case TYPE_PUNCH:
-        return "PUNCH";
-    default:
-        // Unknown type -> exception
-        throw std::invalid_argument("Invalid protocol message type");
-    }
-}
-
-std::string messageToString(const ProtocolMessage &message)
-{
-    JsonDocument doc;
-
-    doc["type"] = messageTypeToString(message.type);
-    doc["device"] = message.deviceId;
-    if (message.data.empty())
-    {
-        JsonObject data = doc["data"].to<JsonObject>();
-    }
-    else
-    {
-        doc["data"] = serialized(message.data);
-    }
-
-    std::string output;
-    serializeJson(doc, output);
-
-    return output;
-}
 
 std::string statusToString(const DeviceStatus &status)
 {
@@ -158,6 +124,34 @@ std::string punchesToString(const SIRecord punches[], int size, const DeviceStat
     std::string output;
     serializeJson(doc, output);
     return output;
+}
+
+int getStatusFromHttpHead(const std::string &head)
+{
+    // Find the start of the HTTP status line
+    size_t httpPos = head.find("HTTP/");
+    if (httpPos == std::string::npos) {
+        return -1;
+    }
+    // Find the end of the line
+    size_t lineEnd = head.find('\n', httpPos);
+    size_t lineStart = httpPos;
+    std::string line = (lineEnd != std::string::npos) ? head.substr(lineStart, lineEnd - lineStart) : head.substr(lineStart);
+
+    // Find first and second space
+    size_t firstSpace = line.find(' ');
+    if (firstSpace == std::string::npos) return -1;
+    size_t secondSpace = line.find(' ', firstSpace + 1);
+    if (secondSpace == std::string::npos) return -1;
+
+    // Extract status code
+    int status = 0;
+    for (size_t i = firstSpace + 1; i < secondSpace; ++i) {
+        char c = line[i];
+        if (c < '0' || c > '9') return -1;
+        status = status * 10 + (c - '0');
+    }
+    return status;
 }
 
 const char *getCause(uint8_t errCode)

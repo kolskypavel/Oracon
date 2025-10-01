@@ -47,12 +47,6 @@
 #define QUEUE_DATA_FILE_NAME "/queue_data.bin"
 #define QUEUE_METADATA_FILE_NAME "/queue_info.bin"
 
-// CRYPTO
-#define MAX_MESSAGE_SIZE 3000
-#define MAX_SIGNATURE_SIZE 256
-#define MAX_DER_BUFF_SIZE 2048
-#define AES_KEY_SIZE 16
-
 // SOCKET - adjust timeouts in case of slow connection 
 #define SOCKET_CONNECT_READ_TIMEOUT 12
 #define SOCKET_READ_TIMEOUT 30
@@ -88,20 +82,12 @@
 
 // LOGIC
 #define MAIN_LOOP_DELAY 1
-#define MIN_STATUS_DELAY 20
-#define MAX_STATUS_DELAY 40
+#define STATUS_DELAY 20
 #define INIT_NBIOT_DELAY 10                 // Initial delay for the NB-IOT module, based on the docs
 #define SYSTEM_STATS_MEASURE_DELAY 10       // How often should system stats (signal and battery) be measured
 
 // TESTING
-//#define LIMIT_NB_IOT_SERIAL                    // Checks for max length of received message
-//#define NO_SETUP_TIMEOUT                          // Delay the device after startup to load NB-IOT module
-//#define TEST_ORACON_NO_TIMEOUT                    // Don't timeout on the socket connection
-//#define TEST_WOLFCRYPT                            // Perform test of encrypt/decrypt and signing
-//#define TEST_WOLFCRYPT_GENERATE_KEY             // Generates a key for the test
 #define TEST_ORACON_SERIAL_VERBOSE                // Prints the received / sent data to a serial
-//#define TEST_ORACON_NO_ENCRYPTION                 // Runs unencrypted verison of protocol
-//#define TEST_ORACON_NO_SIGNATURE_VERIFICATION   // Doesn't verify signature from the server
 //#define TEST_NO_SI_TASKS                          // Don't start the tasks for receiving SI data
 #define TEST_SI_SERIAL_VERBOSE                    // Print info from SI serial reads
 #define TEST_QUEUE_VERBOSE                        // Print info from QUEUE

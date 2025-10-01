@@ -13,14 +13,20 @@ const std::string COMMAND_CHECK_SERVICE = "AT+CEREG?";
 
 const std::string COMMAND_HTTP_INIT = "AT+HTTPINIT";
 const std::string COMMAND_HTTP_SET_PARAMETERS = "AT+HTTPPARA=";
+const std::string COMMAND_HTTP_URL = "\"URL\",\"";
 const std::string COMMAND_HTTP_SSL_CONFIG = "SSLCFG";
-const std::string COMMAND_HTTP_URL = "SSLCFG";
 const std::string COMMAND_HTTP_DATA = "AT+HTTPDATA=";
-const std::string COMMAND_HTTP_ACTION = "AT+HTTPACTION";
+const std::string COMMAND_HTTP_ACTION = "AT+HTTPACTION=";
 const std::string COMMAND_HTTP_READ_RESPONSE = "AT+HTTPHEAD";
 
-// SSL related commands
+const int HTTP_PUT = 4;
 
+// HTTP status
+const int HTTP_STATUS_OK = 200;
+const int HTTP_STATUS_BAD_REQUEST = 400;
+const int HTTP_STATUS_NOT_FOUND = 404;
+
+// SSL related commands
 
 // Command responses
 const std::string COMMAND_RESPONSE_SIM_OK = "+CPIN: READY";

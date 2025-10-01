@@ -12,17 +12,14 @@
 #include "freertos/task.h"
 #include <esp_task_wdt.h>
 #include "esp32_usb_serial.h"
-#include "wolfssl.h"
 
 #include "led/statusled.h"
 #include "si/si_parser.h"
 #include "si/si_queue.h"
 #include "defines.h"
 #include "system/systemstats.h"
-#include "protocol/protocol_message.h"
 #include "protocol/socket.h"
 #include "protocol/exceptions.h"
-#include "crypto/test_crypto.h"
 
 // DO NOT INCLUDE in VCS
 #include "secrets.h"
@@ -380,21 +377,6 @@ void initStatus()
   currStatus.signal = 113;
   currStatus.battery = 0;
 
-  // If config values are stored in memory, use them, otherwise use the preset
-  if (prefs.isKey("statusDelay"))
-  {
-    currStatus.config.statusDelay = prefs.getUChar("statusDelay");
-  }
-  else
-  {
-    currStatus.config.statusDelay = INIT_STATUS_DELAY;
-  }
-
-  currStatus.deviceId = DEVICE_ID;
-  currStatus.privateKey = loadKey(DEVICE_PRIVATE_KEY, true);
-  currStatus.publicKey = loadKey(DEVICE_PUBLIC_KEY, false);
-  currStatus.serverKey = loadKey(SERVER_PUBLIC_KEY, false);
-
   ESP_LOGI("INIT", "Status init successful");
 }
 
@@ -529,7 +511,7 @@ void loop()
         // STATUS?
         statusCurrSeconds = getCurrentTime();
 
-        if ((statusCurrSeconds - statusStartSeconds) > currStatus.config.statusDelay)
+        if ((statusCurrSeconds - statusStartSeconds) > STATUS_DELAY)
         {
           ESP_LOGI("STATUS", "Time period elapsed");
 
@@ -542,16 +524,15 @@ void loop()
       {
         status_led.setColorPreset(StatusLED::ORANGE);
         initHttp(currStatus);
-        break;
       }
-      
-      // Non-fatal errors - can recover without restarting socket
-      catch (const std::invalid_argument &ex)
-      {
-        // TODO: signal out
-        ESP_LOGE("INVALID_ARGUMENT", "Error: %s", ex.what());
-        clearInBuffer();
-      }
+    }
+    // Non-fatal errors - can recover without restarting socket
+    catch (const std::invalid_argument &ex)
+    {
+      // TODO: signal out
+      ESP_LOGE("INVALID_ARGUMENT", "Error: %s", ex.what());
+      clearInBuffer();
     }
     delay(MAIN_LOOP_DELAY * 1000);
   }
+}

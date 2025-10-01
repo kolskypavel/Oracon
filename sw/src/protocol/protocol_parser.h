@@ -1,7 +1,8 @@
 // Parser class for the protocol messages
 #pragma once
 
-#include "protocol_message.h"
+#include <ArduinoJson.h>
+
 #include "system/systemstats.h"
 #include "si/si_parser.h"
 #include <sstream>
@@ -28,17 +29,14 @@ std::string getSubstr(const std::string &input,const std::string & start,const s
 // Parses the values from a command in a format COM:<X>,<Y>
 std::pair<int, int> getValuesFromAt(const std::string & command);
 
-// Serialize message to string
-std::string messageToString(const ProtocolMessage &message);
-
-// Serialize message type to string
-std::string messageTypeToString(ProtocolMessageType type);
-
 // Serializes status object to OraCon format
 std::string statusToString(const DeviceStatus &status);
 
 // Serializes punches to string
 std::string punchesToString(const SIRecord punches[], int size, const DeviceStatus &status);
+
+// Gets a status from HTTP response
+int getStatusFromHttpHead(const std::string & head);
 
 //Returns a cause for given error code - from SIMCom AT manual
 const char * getCause(uint8_t errCode);

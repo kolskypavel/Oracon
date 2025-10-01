@@ -7,7 +7,6 @@ Implementation of the ORacon protocol
 #include <string>
 #include <vector>
 
-#include "protocol_message.h"
 #include "protocol_parser.h"
 #include "serial_commands.h"
 #include "si/si_parser.h"
@@ -22,16 +21,13 @@ void writeData(const std::string &data);
 void clearInBuffer();
 
 // Sends data and checks if they got received correctly
-void sendHttpData(const std::string data, DeviceStatus &status);
+bool sendHttpData(const std::string data, DeviceStatus &status);
 
 // Receives raw data from the serial port
 std::string receiveRawData();
 
 // Receives and parses the raw data - converts and decrypts
 std::string getData(DeviceStatus &status);
-
-// Gets a new message from the server
-ProtocolMessage getNewMessage(DeviceStatus &status);
 
 // Inits the socket for connection
 void initHttp(DeviceStatus &status);

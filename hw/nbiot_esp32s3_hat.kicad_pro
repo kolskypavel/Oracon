@@ -48,11 +48,34 @@
         "silk_text_thickness": 0.1,
         "silk_text_upright": false,
         "zones": {
-          "min_clearance": 0.5
+          "min_clearance": 0.0
         }
       },
-      "diff_pair_dimensions": [],
-      "drc_exclusions": [],
+      "diff_pair_dimensions": [
+        {
+          "gap": 0.0,
+          "via_gap": 0.0,
+          "width": 0.0
+        }
+      ],
+      "drc_exclusions": [
+        [
+          "hole_clearance|3430000|-11550000|c74d0c62-9330-4124-9966-d4f728d6697a|0867b529-1bbc-4dd1-8a42-0abdb3dc5fb2",
+          ""
+        ],
+        [
+          "hole_clearance|3430000|-11550000|c74d0c62-9330-4124-9966-d4f728d6697a|87c989e8-ae00-4899-9166-3fa8c7c28e3c",
+          ""
+        ],
+        [
+          "hole_clearance|3430000|-5450000|9cf0ff0f-7ce2-4425-945a-a058af96358b|5ad4b4dd-60a8-4b64-ab13-f369e109fc27",
+          ""
+        ],
+        [
+          "hole_clearance|3430000|-5450000|9cf0ff0f-7ce2-4425-945a-a058af96358b|f7d92a22-2529-4ebf-a467-9a96b8c518e8",
+          ""
+        ]
+      ],
       "meta": {
         "version": 2
       },
@@ -95,12 +118,12 @@
         "padstack": "warning",
         "pth_inside_courtyard": "ignore",
         "shorting_items": "error",
-        "silk_edge_clearance": "warning",
-        "silk_over_copper": "warning",
-        "silk_overlap": "warning",
+        "silk_edge_clearance": "ignore",
+        "silk_over_copper": "ignore",
+        "silk_overlap": "ignore",
         "skew_out_of_range": "error",
         "solder_mask_bridge": "error",
-        "starved_thermal": "error",
+        "starved_thermal": "warning",
         "text_height": "warning",
         "text_on_edge_cuts": "error",
         "text_thickness": "warning",
@@ -134,7 +157,7 @@
         "min_track_width": 0.0,
         "min_via_annular_width": 0.1,
         "min_via_diameter": 0.5,
-        "solder_mask_to_copper_clearance": 0.0,
+        "solder_mask_to_copper_clearance": 0.005,
         "use_height_for_length_calcs": true
       },
       "teardrop_options": [
@@ -181,7 +204,15 @@
           "td_width_to_size_filter_ratio": 0.9
         }
       ],
-      "track_widths": [],
+      "track_widths": [
+        0.0,
+        0.2,
+        0.25,
+        0.5,
+        1.0,
+        1.5,
+        2.0
+      ],
       "tuning_pattern_settings": {
         "diff_pair_defaults": {
           "corner_radius_percentage": 80,
@@ -208,7 +239,12 @@
           "spacing": 0.6
         }
       },
-      "via_dimensions": [],
+      "via_dimensions": [
+        {
+          "diameter": 0.0,
+          "drill": 0.0
+        }
+      ],
       "zones_allow_external_fillets": false
     },
     "ipc2581": {
@@ -449,7 +485,9 @@
     }
   },
   "libraries": {
-    "pinned_footprint_libs": [],
+    "pinned_footprint_libs": [
+      "kolskypavel"
+    ],
     "pinned_symbol_libs": []
   },
   "meta": {
@@ -492,7 +530,7 @@
       "plot": "",
       "pos_files": "",
       "specctra_dsn": "",
-      "step": "",
+      "step": "nbiot_esp32s3_hat.step",
       "svg": "",
       "vrml": ""
     },

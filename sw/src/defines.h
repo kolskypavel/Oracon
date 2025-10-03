@@ -49,7 +49,7 @@
 
 // SOCKET - adjust timeouts in case of slow connection 
 #define SOCKET_CONNECT_READ_TIMEOUT 12
-#define SOCKET_READ_TIMEOUT 30
+#define SOCKET_READ_TIMEOUT 15
 #define SOCKET_READ_MODE "2" // 2 - ascii, 3 - hex
 #define SOCKET_READ_SIZE 200
 

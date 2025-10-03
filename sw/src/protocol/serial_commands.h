@@ -35,4 +35,5 @@ const std::string COMMAND_RESPONSE_SEND_ERROR = "+CIPERROR: ";
 const std::string COMMAND_RESPONSE_INCOMMING_DATA = "+CIPRXGET";
 const std::string COMMAND_RESPONSE_ERROR = "ERROR:";
 const std::string COMMAND_RESPONSE_OK = "OK";
+const std::string COMMAND_RESPONSE_HTTP_DATA_OK = "DOWNLOAD";
 const std::string COMMAND_RESPONSE_SIGNAL = "+CSQ:";

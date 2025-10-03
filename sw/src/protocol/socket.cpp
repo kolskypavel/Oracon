@@ -79,8 +79,7 @@ void initHttp(DeviceStatus &status)
 
     if (!startsWith(resp, COMMAND_RESPONSE_SIM_OK))
     {
-        ESP_LOGE("INIT", "SIM not connected");
-        return;
+        throw SocketException("SIM not connected");
     }
 
     // Check service status
@@ -89,6 +88,15 @@ void initHttp(DeviceStatus &status)
     if (!startsWith(resp, COMMAND_RESPONSE_SERVICE))
     {
         ESP_LOGE("CONNECT", "Invalid response for service command");
+        return;
+    }
+
+    getSignalStrength(status);
+    ESP_LOGI("CONNECT", "Signal strength: %d dBm", status.signal);
+
+    if (status.signal == MAX_SIGNAL_VALUE)
+    {
+        ESP_LOGE("CONNECT", "No signal");
         return;
     }
 
@@ -127,9 +135,16 @@ bool sendHttpData(const std::string data, DeviceStatus &status)
     std::string buffer;
 
     // Add data
-    writeData(COMMAND_HTTP_DATA);
+    writeData(COMMAND_HTTP_DATA + std::to_string(data.size()) + ",1000");
 
     buffer = receiveRawData();
+    if (!startsWith(buffer, COMMAND_RESPONSE_HTTP_DATA_OK))
+    {
+        ESP_LOGE("HTTP", "Failed to set HTTP data size");
+        return false;
+    }
+
+    writeData(data);
     if (!startsWith(buffer, COMMAND_RESPONSE_OK))
     {
         ESP_LOGE("HTTP", "Failed to set HTTP data");
@@ -181,6 +196,8 @@ void sendStatus(DeviceStatus &status, Preferences &prefs)
 {
 
     std::string msg = statusToString(status);
+    ESP_LOGI("STATUS", "Status data: %s", msg.c_str());
+
     bool sent = sendHttpData(msg, status);
 
     if (sent)

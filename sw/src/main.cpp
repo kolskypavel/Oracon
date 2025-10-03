@@ -527,7 +527,7 @@ void loop()
       }
     }
     // Non-fatal errors - can recover without restarting socket
-    catch (const std::invalid_argument &ex)
+    catch (const std::exception &ex)
     {
       // TODO: signal out
       ESP_LOGE("INVALID_ARGUMENT", "Error: %s", ex.what());
@@ -535,4 +535,5 @@ void loop()
     }
     delay(MAIN_LOOP_DELAY * 1000);
   }
+  delay(1000);
 }

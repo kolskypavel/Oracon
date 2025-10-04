@@ -491,7 +491,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "nbiot_esp32s3_hat.kicad_pro",
+    "filename": "oracon.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -530,7 +530,7 @@
       "plot": "",
       "pos_files": "",
       "specctra_dsn": "",
-      "step": "nbiot_esp32s3_hat.step",
+      "step": "oracon.step",
       "svg": "",
       "vrml": ""
     },

@@ -5,11 +5,181 @@
 	(uuid "7501ec1f-5c34-40ce-b7e3-cacc6e1961d1")
 	(paper "A3")
 	(title_block
-		(title "nbiot_esp32s3_hat")
-		(date "2025-04-25")
+		(title "Oracon")
+		(date "2025-10-04")
 		(company "kolskypavel")
 	)
 	(lib_symbols
+		(symbol "Connector:Conn_Coaxial"
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "J"
+				(at 0.254 3.048 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "Conn_Coaxial"
+				(at 2.921 0 90)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "coaxial connector (BNC, SMA, SMB, SMC, Cinch/RCA, LEMO, ...)"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "BNC SMA SMB SMC LEMO coaxial connector CINCH RCA MCX MMCX U.FL UMRF"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "*BNC* *SMA* *SMB* *SMC* *Cinch* *LEMO* *UMRF* *MCX* *U.FL*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "Conn_Coaxial_0_1"
+				(polyline
+					(pts
+						(xy -2.54 0) (xy -0.508 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 1.778 0)
+					(mid 0.222 -1.8079)
+					(end -1.778 -0.508)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start -1.778 0.508)
+					(mid 0.2221 1.8084)
+					(end 1.778 0)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center 0 0)
+					(radius 0.508)
+					(stroke
+						(width 0.2032)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 -2.54) (xy 0 -1.778)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "Conn_Coaxial_1_1"
+				(pin passive line
+					(at -5.08 0 0)
+					(length 2.54)
+					(name "In"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 0 -5.08 90)
+					(length 2.54)
+					(name "Ext"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Connector:DE9_Pins_MountingHoles"
 			(pin_names
 				(offset 1.016)
@@ -857,25 +1027,23 @@
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
-			(property "Reference" "J"
-				(at -5.08 11.43 0)
+			(property "Reference" "J3"
+				(at 0 12.7 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
 				)
 			)
 			(property "Value" "USB_A"
-				(at -5.08 8.89 0)
+				(at 0 10.16 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
 				)
 			)
-			(property "Footprint" ""
+			(property "Footprint" "kolskypavel:HYC214-USBA04-113"
 				(at 3.81 -1.27 0)
 				(effects
 					(font
@@ -1079,24 +1247,6 @@
 					)
 					(fill
 						(type none)
-					)
-				)
-				(pin passive line
-					(at -2.54 -10.16 90)
-					(length 2.54)
-					(name "Shield"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
 					)
 				)
 				(pin power_in line
@@ -8420,12 +8570,6 @@
 		(uuid "08929a00-b504-4076-95fa-ca99888eb863")
 	)
 	(junction
-		(at 377.19 173.99)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "09cde2ba-70cb-4f2d-8fc7-e7dc8734fcea")
-	)
-	(junction
 		(at 397.51 63.5)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -9053,16 +9197,6 @@
 	)
 	(wire
 		(pts
-			(xy 374.65 173.99) (xy 377.19 173.99)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "0971aed0-e0b0-45ea-964b-31fbe823d6ed")
-	)
-	(wire
-		(pts
 			(xy 62.23 29.21) (xy 62.23 31.75)
 		)
 		(stroke
@@ -9323,7 +9457,7 @@
 	)
 	(wire
 		(pts
-			(xy 377.19 172.72) (xy 377.19 173.99)
+			(xy 377.19 172.72) (xy 377.19 175.26)
 		)
 		(stroke
 			(width 0)
@@ -9610,16 +9744,6 @@
 			(type default)
 		)
 		(uuid "2c2a86e4-19e1-449e-917e-7daa8e7caf98")
-	)
-	(wire
-		(pts
-			(xy 374.65 172.72) (xy 374.65 173.99)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "2d5a2a64-7724-4bde-9c9b-4b8153c19431")
 	)
 	(wire
 		(pts
@@ -10283,16 +10407,6 @@
 	)
 	(wire
 		(pts
-			(xy 358.14 227.33) (xy 364.49 227.33)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "6c08fb5d-5f71-44e1-971e-2f086887aef1")
-	)
-	(wire
-		(pts
 			(xy 34.29 87.63) (xy 34.29 86.36)
 		)
 		(stroke
@@ -10300,6 +10414,16 @@
 			(type default)
 		)
 		(uuid "6c77a27f-4d09-4d4d-a559-2e91cbc788a1")
+	)
+	(wire
+		(pts
+			(xy 334.01 222.25) (xy 364.49 222.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6c989f98-b240-498d-afd3-dfb133f5f7de")
 	)
 	(wire
 		(pts
@@ -10410,16 +10534,6 @@
 			(type default)
 		)
 		(uuid "743d3880-b043-4a7b-8776-29649945022c")
-	)
-	(wire
-		(pts
-			(xy 355.6 227.33) (xy 355.6 222.25)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "752ac8ab-723c-41cc-a0ee-b605e652854f")
 	)
 	(wire
 		(pts
@@ -10543,16 +10657,6 @@
 	)
 	(wire
 		(pts
-			(xy 355.6 222.25) (xy 364.49 222.25)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "7f6b00ad-d96e-4656-b029-54475b1fbee7")
-	)
-	(wire
-		(pts
 			(xy 363.22 87.63) (xy 370.84 87.63)
 		)
 		(stroke
@@ -10600,6 +10704,16 @@
 			(type default)
 		)
 		(uuid "83aa967d-0415-4148-adcf-374ce364899b")
+	)
+	(wire
+		(pts
+			(xy 326.39 217.17) (xy 334.01 217.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "84352e47-1804-4538-9e95-94037d38d000")
 	)
 	(wire
 		(pts
@@ -10760,6 +10874,16 @@
 			(type default)
 		)
 		(uuid "90cc3c5a-43e1-40b4-a85e-baa1b3017931")
+	)
+	(wire
+		(pts
+			(xy 137.16 177.8) (xy 146.05 177.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "924b901c-4f2c-4446-bda7-70bf57e27e2a")
 	)
 	(wire
 		(pts
@@ -11110,16 +11234,6 @@
 			(type default)
 		)
 		(uuid "b383fa52-9377-4a01-a1db-6ebfc4d2cece")
-	)
-	(wire
-		(pts
-			(xy 377.19 173.99) (xy 377.19 175.26)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b54a0b8d-3884-4102-b044-39d526cc37d7")
 	)
 	(wire
 		(pts
@@ -11593,6 +11707,16 @@
 	)
 	(wire
 		(pts
+			(xy 151.13 182.88) (xy 151.13 190.5)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d89a077c-744d-4184-8d27-9cb7fb730007")
+	)
+	(wire
+		(pts
 			(xy 46.99 24.13) (xy 45.72 24.13)
 		)
 		(stroke
@@ -11620,16 +11744,6 @@
 			(type default)
 		)
 		(uuid "dbbebff8-1d2d-4bdb-b637-41163d1641c9")
-	)
-	(wire
-		(pts
-			(xy 326.39 217.17) (xy 358.14 217.17)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "dbc4766b-4e1a-4cb6-9a85-7e4434987845")
 	)
 	(wire
 		(pts
@@ -11703,16 +11817,6 @@
 	)
 	(wire
 		(pts
-			(xy 358.14 217.17) (xy 358.14 227.33)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "dcff8bc5-c340-4e05-bfa4-0497c0ab9c7b")
-	)
-	(wire
-		(pts
 			(xy 182.88 264.16) (xy 184.15 264.16)
 		)
 		(stroke
@@ -11773,7 +11877,7 @@
 	)
 	(wire
 		(pts
-			(xy 326.39 227.33) (xy 355.6 227.33)
+			(xy 326.39 227.33) (xy 364.49 227.33)
 		)
 		(stroke
 			(width 0)
@@ -11950,6 +12054,16 @@
 			(type default)
 		)
 		(uuid "ea4f292e-4465-4e6b-971b-6da342865307")
+	)
+	(wire
+		(pts
+			(xy 334.01 222.25) (xy 334.01 217.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ea683475-8fdb-411b-9179-2b8fb3fee342")
 	)
 	(wire
 		(pts
@@ -18245,7 +18359,7 @@
 		(dnp no)
 		(uuid "3a0ca8df-5689-43a6-af37-428a9be20643")
 		(property "Reference" "C22"
-			(at 342.9 215.392 0)
+			(at 341.884 216.662 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18254,7 +18368,7 @@
 			)
 		)
 		(property "Value" "100n"
-			(at 340.36 215.392 0)
+			(at 340.868 218.948 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -25472,7 +25586,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_USB:USB_A_Molex_67643_Horizontal"
+		(property "Footprint" "kolskypavel:HYC214-USBA04-113"
 			(at 381 163.83 0)
 			(effects
 				(font
@@ -25501,9 +25615,6 @@
 		)
 		(pin "3"
 			(uuid "5ef7c818-df1e-4642-b167-32e4da053fd0")
-		)
-		(pin "5"
-			(uuid "14167ef7-60a4-4a43-8846-385d57a2ee5c")
 		)
 		(pin "1"
 			(uuid "5d565513-d448-43ac-949c-1c113446ef66")
@@ -34306,6 +34417,76 @@
 			(project "nbiot_esp32s3_hat"
 				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
 					(reference "C4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:Conn_Coaxial")
+		(at 151.13 177.8 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "f912dc51-5347-4c3b-b05b-39ab1fe7742a")
+		(property "Reference" "J4"
+			(at 154.94 176.8231 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Conn_Coaxial"
+			(at 154.94 179.3631 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 151.13 177.8 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 151.13 177.8 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "coaxial connector (BNC, SMA, SMB, SMC, Cinch/RCA, LEMO, ...)"
+			(at 151.13 177.8 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "be4c70f6-7820-483f-89a9-270708676e14")
+		)
+		(pin "2"
+			(uuid "3d3cfe4c-6f3d-437c-9b5d-0d0f0de83651")
+		)
+		(instances
+			(project ""
+				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
+					(reference "J4")
 					(unit 1)
 				)
 			)

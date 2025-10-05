@@ -26396,7 +26396,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal"
+		(property "Footprint" "kolskypavel:HOAUC HYCW412-USBC16-065B"
 			(at 34.29 39.37 0)
 			(effects
 				(font

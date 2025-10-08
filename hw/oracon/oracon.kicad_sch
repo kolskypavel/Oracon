@@ -484,7 +484,7 @@
 							)
 						)
 					)
-					(number "8"
+					(number "SH"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -502,7 +502,7 @@
 							)
 						)
 					)
-					(number "9"
+					(number "CD"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -30250,10 +30250,10 @@
 		(pin "2"
 			(uuid "550fd948-4fec-4d7b-adf5-4854d0f549ab")
 		)
-		(pin "8"
+		(pin "CD"
 			(uuid "4b649931-8fcc-407d-87d8-01760ff19061")
 		)
-		(pin "9"
+		(pin "SH"
 			(uuid "b2eda2c0-cac2-403c-b194-103803f86a6e")
 		)
 		(instances

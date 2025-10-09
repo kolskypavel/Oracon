@@ -4008,6 +4008,113 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "MountingHole_Pad_1"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom no)
+			(on_board yes)
+			(property "Reference" "H"
+				(at 0 6.35 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "MountingHole_Pad"
+				(at 0 4.445 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Mounting Hole with connection"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "mounting hole"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "MountingHole*Pad*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "MountingHole_Pad_1_0_1"
+				(circle
+					(center 0 1.27)
+					(radius 1.27)
+					(stroke
+						(width 1.27)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "MountingHole_Pad_1_1_1"
+				(pin input line
+					(at 0 -2.54 90)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "RF_Module:ESP32-S3-MINI-1U"
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -11059,6 +11166,16 @@
 	)
 	(wire
 		(pts
+			(xy 100.33 128.27) (xy 105.41 128.27)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bc2bdcd1-e812-4909-b4e9-42f7ce0fb2c5")
+	)
+	(wire
+		(pts
 			(xy 311.15 92.71) (xy 311.15 93.98)
 		)
 		(stroke
@@ -12007,28 +12124,6 @@
 		)
 		(uuid "fed308fc-0db5-4dcb-8924-f1f4a3ed28b1")
 	)
-	(global_label "LED2_G"
-		(shape input)
-		(at 78.74 127 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "00d9f062-d3c1-4332-ab91-9d65dcdee4ea")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 88.6194 127 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-	)
 	(global_label "STBY_STAT"
 		(shape input)
 		(at 375.92 116.84 180)
@@ -12069,6 +12164,28 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "LED2_R"
+		(shape input)
+		(at 78.74 119.38 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "0c57c8bc-46f4-46a7-882e-119e3e4af7c1")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 88.6194 119.38 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 				(hide yes)
 			)
 		)
@@ -12196,28 +12313,6 @@
 		(uuid "1851169b-7cac-4543-be54-f9987e494451")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 157.6833 53.34 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-	)
-	(global_label "LED1_B"
-		(shape input)
-		(at 78.74 137.16 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "1b2080f1-35f8-407e-adae-0d057beba692")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 88.6194 137.16 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12447,6 +12542,28 @@
 			)
 		)
 	)
+	(global_label "LED1_R"
+		(shape input)
+		(at 78.74 144.78 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "3ff6b424-9650-4669-bb0c-af883bc360d5")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 88.6194 144.78 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "RS232_RX"
 		(shape input)
 		(at 48.26 106.68 180)
@@ -12482,6 +12599,28 @@
 		(uuid "40ba92ac-fe8f-497a-a022-bdc163ec6bdc")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 129.3367 111.76 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "SI_RX"
+		(shape input)
+		(at 105.41 143.51 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "41ae2b60-058a-4a39-8b56-8df37fab2b58")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 97.1634 143.51 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12535,9 +12674,9 @@
 			)
 		)
 	)
-	(global_label "LED2_B"
+	(global_label "LED1_G"
 		(shape input)
-		(at 78.74 129.54 0)
+		(at 78.74 111.76 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -12545,9 +12684,9 @@
 			)
 			(justify left)
 		)
-		(uuid "4a07d374-70d6-442e-bd65-dc9319429355")
+		(uuid "4d18ce74-7f37-47cf-9147-8d08cb2bae00")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 88.6194 129.54 0)
+			(at 88.6194 111.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12592,6 +12731,28 @@
 		(uuid "563a7691-7265-46ed-a2b4-dce9b406f72f")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 353.3406 44.45 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "SI_TX"
+		(shape input)
+		(at 105.41 135.89 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "59be5c71-7fa7-4f4d-aec9-d6fb9611e830")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 97.4658 135.89 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12663,6 +12824,28 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "LED2_G"
+		(shape input)
+		(at 78.74 121.92 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "6ac3ba18-3b4b-441b-9741-3d61334e0ad7")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 88.6194 121.92 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 				(hide yes)
 			)
 		)
@@ -12755,72 +12938,6 @@
 			)
 		)
 	)
-	(global_label "LED2_R"
-		(shape input)
-		(at 78.74 124.46 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "78e25a37-da56-4545-ad9e-2642960ae511")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 88.6194 124.46 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-	)
-	(global_label "LED1_R"
-		(shape input)
-		(at 78.74 132.08 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "7a43a2d6-65c5-4bbe-8f6f-886973176fd5")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 88.6194 132.08 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-	)
-	(global_label "CHG_STAT"
-		(shape input)
-		(at 78.74 111.76 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "7c2b001b-8992-4221-8df3-f85ff454dc93")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 90.7966 111.76 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-	)
 	(global_label "SIM_CLK"
 		(shape input)
 		(at 140.97 116.84 180)
@@ -12887,6 +13004,28 @@
 			)
 		)
 	)
+	(global_label "STBY_STAT"
+		(shape input)
+		(at 78.74 106.68 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "83c08297-c6aa-41d5-9b13-e064ca9b06e1")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 91.4618 106.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "GPIO0"
 		(shape input)
 		(at 335.28 45.72 0)
@@ -12931,6 +13070,28 @@
 			)
 		)
 	)
+	(global_label "CHG_STAT"
+		(shape input)
+		(at 78.74 104.14 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "8f807867-c461-407b-87ad-77b499010b4e")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 90.7966 104.14 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "SIM_DATA"
 		(shape input)
 		(at 30.48 245.11 180)
@@ -12966,6 +13127,28 @@
 		(uuid "98822903-f4d6-4174-bf40-8c83ca796fbe")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 273.2097 227.33 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "SI_RX"
+		(shape input)
+		(at 48.26 139.7 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "9b5389c7-8f6a-4e35-8d94-4158516c6f04")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 40.0134 139.7 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13019,50 +13202,6 @@
 			)
 		)
 	)
-	(global_label "LED1_G"
-		(shape input)
-		(at 78.74 134.62 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "a1fc3c46-d84d-4a44-afd2-6551a0f01068")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 88.6194 134.62 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-	)
-	(global_label "STBY_STAT"
-		(shape input)
-		(at 78.74 144.78 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "a7e9ae51-52c9-4ee6-b2bb-6f7e95e9f0ae")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 91.4618 144.78 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-	)
 	(global_label "SIM_VDD"
 		(shape input)
 		(at 191.77 91.44 0)
@@ -13076,6 +13215,28 @@
 		(uuid "a9634d5a-8692-4a0e-87b1-cf26329a3f6a")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 202.6171 91.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "LED1_B"
+		(shape input)
+		(at 78.74 109.22 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "ac3d87b7-b8a6-427d-ab24-a378f4c81c72")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 88.6194 109.22 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13147,6 +13308,28 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "LED2_B"
+		(shape input)
+		(at 78.74 124.46 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "b68e6781-76e9-4fac-91b0-a5206000699b")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 88.6194 124.46 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 				(hide yes)
 			)
 		)
@@ -13455,6 +13638,28 @@
 					(size 1.27 1.27)
 				)
 				(justify left)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "SI_TX"
+		(shape input)
+		(at 48.26 137.16 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "f1cc6d8f-50bc-41a5-af44-a28b3041107c")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 40.3158 137.16 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
 				(hide yes)
 			)
 		)
@@ -14822,6 +15027,73 @@
 			(project "nbiot_esp32s3_hat"
 				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
 					(reference "R27")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3.3V")
+		(at 105.41 119.38 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "15198a9d-225b-49b2-9ac7-0d7c38ac59ac")
+		(property "Reference" "#PWR055"
+			(at 109.22 119.38 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+3.3V"
+			(at 101.6 119.3799 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 105.41 119.38 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 105.41 119.38 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 105.41 119.38 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "68ba58d9-7175-4d2b-ad6c-fba27bfcef2a")
+		)
+		(instances
+			(project "oracon"
+				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
+					(reference "#PWR055")
 					(unit 1)
 				)
 			)
@@ -16586,6 +16858,74 @@
 		)
 	)
 	(symbol
+		(lib_name "MountingHole_Pad_1")
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 105.41 133.35 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "27f7356a-9d14-4737-bfb0-23193e7b468d")
+		(property "Reference" "H5"
+			(at 107.95 130.8099 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SI_TX"
+			(at 107.95 133.3499 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 105.41 133.35 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 105.41 133.35 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 105.41 133.35 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "dd57e59c-865d-406b-bc98-768a50aff114")
+		)
+		(instances
+			(project ""
+				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
+					(reference "H5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 391.16 137.16 0)
 		(unit 1)
@@ -17558,6 +17898,72 @@
 			(project "nbiot_esp32s3_hat"
 				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
 					(reference "#PWR028")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 100.33 128.27 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "31d75942-91d9-4578-b514-2f8490e97503")
+		(property "Reference" "#PWR051"
+			(at 100.33 134.62 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND"
+			(at 100.33 133.35 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 100.33 128.27 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 100.33 128.27 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 100.33 128.27 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "8799168d-05fe-4771-8112-f4b20a342726")
+		)
+		(instances
+			(project "oracon"
+				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
+					(reference "#PWR051")
 					(unit 1)
 				)
 			)
@@ -23380,6 +23786,74 @@
 		)
 	)
 	(symbol
+		(lib_name "MountingHole_Pad_1")
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 105.41 140.97 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "8061e38a-53bf-47ca-937e-4c5573fac7a9")
+		(property "Reference" "H6"
+			(at 107.95 138.4299 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SI_RX"
+			(at 107.95 140.9699 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 105.41 140.97 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 105.41 140.97 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 105.41 140.97 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "c151c843-8b13-40d7-89b2-51a55610e528")
+		)
+		(instances
+			(project "oracon"
+				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
+					(reference "H6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 381 34.29 90)
 		(unit 1)
@@ -28174,6 +28648,74 @@
 		)
 	)
 	(symbol
+		(lib_name "MountingHole_Pad_1")
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 105.41 116.84 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "aaf87bc7-7004-4bda-ba75-813a33226962")
+		(property "Reference" "H8"
+			(at 107.95 114.2999 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SI_3.3V"
+			(at 107.95 116.8399 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 105.41 116.84 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 105.41 116.84 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 105.41 116.84 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "16a2cf11-9478-4d8f-bf19-a9eae1bf9acd")
+		)
+		(instances
+			(project "oracon"
+				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
+					(reference "H8")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:+3.3V")
 		(at 217.17 135.89 0)
 		(unit 1)
@@ -28732,6 +29274,74 @@
 			(project "nbiot_esp32s3_hat"
 				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
 					(reference "#PWR08")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_name "MountingHole_Pad_1")
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 105.41 125.73 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "b6917e41-862e-45c5-917a-df1cfbe20045")
+		(property "Reference" "H7"
+			(at 107.95 123.1899 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SI_GND"
+			(at 107.95 125.7299 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 105.41 125.73 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 105.41 125.73 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 105.41 125.73 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "b1a11689-868a-43b6-b244-61bda8747845")
+		)
+		(instances
+			(project "oracon"
+				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
+					(reference "H7")
 					(unit 1)
 				)
 			)

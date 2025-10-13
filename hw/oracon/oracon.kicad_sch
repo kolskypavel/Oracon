@@ -9866,16 +9866,6 @@
 	)
 	(wire
 		(pts
-			(xy 384.81 116.84) (xy 386.08 116.84)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "4d7343f9-ebfc-4dde-9201-691492b65802")
-	)
-	(wire
-		(pts
 			(xy 278.13 270.51) (xy 278.13 271.78)
 		)
 		(stroke
@@ -10023,6 +10013,16 @@
 			(type default)
 		)
 		(uuid "5c04c7e5-4004-4ccd-8aa3-f6069cf8f2e2")
+	)
+	(wire
+		(pts
+			(xy 384.81 111.76) (xy 386.08 111.76)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5c3e4d60-9e0d-4c39-9453-d425f3caf30b")
 	)
 	(wire
 		(pts
@@ -10516,16 +10516,6 @@
 	)
 	(wire
 		(pts
-			(xy 375.92 116.84) (xy 377.19 116.84)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "87f17da4-0956-4d9d-9b30-2d47826869d5")
-	)
-	(wire
-		(pts
 			(xy 209.55 36.83) (xy 209.55 19.05)
 		)
 		(stroke
@@ -10903,6 +10893,16 @@
 			(type default)
 		)
 		(uuid "a7ed2e9b-e900-4ea7-9d72-110526a3232a")
+	)
+	(wire
+		(pts
+			(xy 375.92 111.76) (xy 377.19 111.76)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a8742591-132b-4c17-bd42-131b462d89db")
 	)
 	(wire
 		(pts
@@ -12124,28 +12124,6 @@
 		)
 		(uuid "fed308fc-0db5-4dcb-8924-f1f4a3ed28b1")
 	)
-	(global_label "STBY_STAT"
-		(shape input)
-		(at 375.92 116.84 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "0346e5fc-0605-4eca-987d-1b8aa6837a6b")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 363.1982 116.84 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-				(hide yes)
-			)
-		)
-	)
 	(global_label "LED2_B"
 		(shape input)
 		(at 363.22 68.58 180)
@@ -12885,6 +12863,28 @@
 		(uuid "6bc9d843-0a67-4166-9bfd-4893da9ff1ca")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 36.4453 111.76 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "STBY_STAT"
+		(shape input)
+		(at 375.92 111.76 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "6c699d97-74a4-4355-a4ad-aeca9cdc4c8b")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 363.1982 111.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -34138,7 +34138,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 381 116.84 90)
+		(at 381 111.76 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -34147,7 +34147,7 @@
 		(fields_autoplaced yes)
 		(uuid "e976e1f9-8fd9-4346-9aba-ca7eb6cd24a4")
 		(property "Reference" "R25"
-			(at 381 111.76 90)
+			(at 381 106.68 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -34155,7 +34155,7 @@
 			)
 		)
 		(property "Value" "100R"
-			(at 381 114.3 90)
+			(at 381 109.22 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -34163,7 +34163,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 381 118.618 90)
+			(at 381 113.538 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -34172,7 +34172,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 381 116.84 0)
+			(at 381 111.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -34181,7 +34181,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 381 116.84 0)
+			(at 381 111.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -34196,7 +34196,7 @@
 			(uuid "761ed571-1be3-45a3-a06b-f93ec755e9dc")
 		)
 		(instances
-			(project "nbiot_esp32s3_hat"
+			(project "oracon"
 				(path "/7501ec1f-5c34-40ce-b7e3-cacc6e1961d1"
 					(reference "R25")
 					(unit 1)

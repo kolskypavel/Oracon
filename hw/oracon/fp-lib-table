@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "kolskypavel")(type "KiCad")(uri "/home/pavel/Zalohovane/Osobni/Projekty/kicad/kolskypavel.pretty")(options "")(descr ""))
+)

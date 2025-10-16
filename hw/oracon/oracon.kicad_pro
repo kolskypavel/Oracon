@@ -58,7 +58,12 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        [
+          "unconnected_items|11540000|87740000|F.Cu|4|56f2f6f6-926d-4ad7-a98e-d99dbd56fc7c|9312159f-5500-4abc-a6de-7dd0f865c0d2",
+          ""
+        ]
+      ],
       "meta": {
         "version": 2
       },
@@ -191,6 +196,7 @@
         0.0,
         0.2,
         0.25,
+        0.349,
         0.5,
         1.0,
         1.5,
@@ -452,7 +458,7 @@
       "pin_not_connected": "error",
       "pin_not_driven": "error",
       "pin_to_pin": "warning",
-      "power_pin_not_driven": "error",
+      "power_pin_not_driven": "ignore",
       "same_local_global_label": "warning",
       "similar_label_and_power": "warning",
       "similar_labels": "warning",

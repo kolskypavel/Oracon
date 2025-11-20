@@ -18,8 +18,7 @@
 #include "si/si_queue.h"
 #include "defines.h"
 #include "system/systemstats.h"
-#include "protocol/socket.h"
-#include "protocol/exceptions.h"
+#include "protocol/protocol.h"
 
 // DO NOT INCLUDE in VCS
 #include "secrets.h"
@@ -204,6 +203,85 @@ static void esp_usb_serial_connection_task(void *pvParameter)
   vTaskDelete(NULL);
 }
 
+static void srr_serial_task(void *pvParameter)
+{
+  uint8_t buffer[MAX_SI_DATA_SIZE];
+  boolean finished = true;
+
+  while (true)
+  {
+    finished = true;
+
+    // Clear buffer
+    for (int c = 0; c < MAX_SI_DATA_SIZE; c++)
+    {
+      buffer[c] = 0;
+    }
+
+    if (srr_serial.available())
+    {
+
+      int read = 0;
+      while (srr_serial.available())
+      {
+        // Prevent buffer overflow
+        if (read >= MAX_SI_DATA_SIZE)
+        {
+          finished = false;
+          break;
+        }
+
+        buffer[read] = srr_serial.read();
+        read++;
+        delay(3);
+      }
+
+#ifdef TEST_SI_SERIAL_VERBOSE
+      ESP_LOGI("SRR", "Received data: %s", dataToHex(buffer, read).c_str());
+#endif
+
+      if (finished &&
+          read >= SI_RECORD_SIZE &&
+          buffer[1] == BYTE_STX &&
+          buffer[2] == BYTE_PUNCH_DATA &&
+          buffer[19] == BYTE_ETX)
+      {
+        SIRecord record;
+
+        //    Try to parse data
+        if (parseSIdata(buffer + 1, record))
+        {
+#ifdef TEST_SI_SERIAL_VERBOSE
+          ESP_LOGI("SRR", "Parsed SI-Card data from SRR serial:[S %d,C %d, T %s]",
+                   record.stationNumber,
+                   record.cardNumber,
+                   record.time);
+#endif
+          if (!enqueueRecord(record))
+          {
+            ESP_LOGE("SRR", "Queue is full");
+
+            status_led.setMode(StatusLED::PULSE, STATUS_LED_ERROR_FREQ);
+          }
+          else
+          {
+            status_led.setMode(StatusLED::SOLID, 0);
+          }
+        }
+      }
+#ifdef TEST_SI_SERIAL_VERBOSE
+      else
+      {
+        ESP_LOGI("SRR", "Received data is not SI-Card data");
+      }
+#endif
+    }
+    delay(1); // Prevent WDT from reset
+  }
+  // Fail safe - task shouldn't return
+  vTaskDelete(nullptr);
+}
+
 static void rs232_serial_task(void *pvParameter)
 {
   uint8_t buffer[MAX_SI_DATA_SIZE];
@@ -309,6 +387,8 @@ void initTasks()
   }
 
 #ifndef TEST_NO_SI_TASKS
+
+#ifndef USE_SRR
   res = xTaskCreate(
       rs232_serial_task, "rs232_serial_task",
       4096, nullptr, ESP_USB_SERIAL_TASK_PRIORITY, nullptr);
@@ -317,6 +397,17 @@ void initTasks()
   {
     throw std::runtime_error("Failed to init RS232 task");
   }
+
+#else
+  res = xTaskCreate(
+      srr_serial_task, "srr_serial_task",
+      4096, nullptr, ESP_USB_SERIAL_TASK_PRIORITY, nullptr);
+
+  if (res != pdPASS)
+  {
+    throw std::runtime_error("Failed to init SRR task");
+  }
+#endif
 
   if (ESP_OK != usb_serial_init())
   {
@@ -380,19 +471,38 @@ void initStatus()
   ESP_LOGI("INIT", "Status init successful");
 }
 
+void initIOT()
+{
+
+  std::string resp;
+
+  writeData("AT+QCBAND=0,20");
+  resp = receiveRawData(SOCKET_READ_TIMEOUT);
+
+  writeData("AT+CGDCONT=0," + std::string(APN));
+  resp = receiveRawData(SOCKET_READ_TIMEOUT);
+
+  // writeData("AT+QCBAND?");
+  // resp = receiveRawData();
+
+  // writeData("AT+CGDCONT=?");
+  // resp = receiveRawData();
+}
+
 void setup()
 {
   // Watchdog timer tuning
-  //  esp_task_wdt_init(18, true);  // Timeout in seconds, panic enabled
-  //  esp_task_wdt_add(NULL);
 
   // Init serial ports
   usb_serial.begin(115200);
-  rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RX_RS232_PIN, TX_RS232_PIN);
   nbiot_serial.begin(NB_IOT_SERIAL_BAUDRATE, SERIAL_8N1, RX_NBIOT_PIN, TX_NBIOT_PIN);
 
-  pinMode(BOOST_ENABLE, OUTPUT);
-  digitalWrite(BOOST_ENABLE, 1);
+#ifndef USE_SRR
+  rs232_serial.begin(SI_RS232_SERIAL_BAUDRATE, SERIAL_8N1, RX_RS232_PIN, TX_RS232_PIN);
+#else
+  srr_serial.begin(SI_SRR_SERIAL_BAUDRATE, SERIAL_8N1, RX_SRR_PIN, TX_SRR_PIN);
+
+#endif
 
   // INIT LEDS
   initLEDs();
@@ -427,6 +537,8 @@ void setup()
     // INIT TASKS
     initTasks();
 
+    initIOT();
+
     currStatus.init = true;
   }
   catch (const std::runtime_error &ex)
@@ -436,10 +548,6 @@ void setup()
     status_led.setColorPreset(StatusLED::RED);
     ESP_LOGE("INIT", "Failed to init, cause: %s", ex.what());
   }
-
-#ifdef TEST_WOLFCRYPT
-  testCrypto(currStatus);
-#endif
 }
 
 void setLeds()
@@ -524,6 +632,11 @@ void loop()
       {
         status_led.setColorPreset(StatusLED::ORANGE);
         initHttp(currStatus);
+
+        if (currStatus.httpStatus != HttpStatus::HTTP_INIT)
+        {
+          delay(5000);
+        }
       }
     }
     // Non-fatal errors - can recover without restarting socket

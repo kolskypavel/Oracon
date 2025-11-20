@@ -39,6 +39,11 @@ bool startsWith(const std::string &text, const std::string &prefix)
     return false;
 }
 
+bool contains(const std::string &input, const std::string &data)
+{
+    return input.find(data) != std::string::npos;
+}
+
 std::string getSuffix(const std::string &input, const std::string &str)
 {
     size_t pos = input.rfind(str);
@@ -84,18 +89,14 @@ std::pair<int, int> getValuesFromAt(const std::string &command)
     throw std::invalid_argument("Invalid command format - can't extract values");
 }
 
-
 std::string statusToString(const DeviceStatus &status)
 {
     JsonDocument doc;
     doc["type"] = "STATUS";
-    doc["device_key"] = status.deviceKey;
-
-    JsonObject statusObj = doc["status"].to<JsonObject>();
-    statusObj["battery"] = status.battery;
-    statusObj["signal"] = status.signal;
-    statusObj["punchesReceived"] = status.punchesReceived;
-
+    doc["device_key"] = DEVICE_API_KEY;
+    doc["battery"] = status.battery;
+    doc["signal"] = status.signal;
+    
     std::string output;
     serializeJson(doc, output);
     return output;
@@ -105,8 +106,8 @@ std::string punchesToString(const SIRecord punches[], int size, const DeviceStat
 {
     JsonDocument doc;
     doc["type"] = "PUNCH";
-    doc["device_key"] = status.deviceKey;
-    JsonArray punchesArray = doc["punches"].to<JsonArray>();
+    doc["device_key"] = DEVICE_API_KEY;
+    JsonArray punchesArray = doc["results"].to<JsonArray>();
 
     for (int i = 0; i < size; ++i)
     {
@@ -116,7 +117,7 @@ std::string punchesToString(const SIRecord punches[], int size, const DeviceStat
                  punches[i].time);
 
         JsonObject punchObj = punchesArray.add<JsonObject>();
-        punchObj["station_number"] = punches[i].stationNumber;
+        punchObj["control_code"] = punches[i].stationNumber;
         punchObj["si_number"] = punches[i].cardNumber;
         punchObj["punch_time"] = punches[i].time;
     }
@@ -130,7 +131,8 @@ int getStatusFromHttpHead(const std::string &head)
 {
     // Find the start of the HTTP status line
     size_t httpPos = head.find("HTTP/");
-    if (httpPos == std::string::npos) {
+    if (httpPos == std::string::npos)
+    {
         return -1;
     }
     // Find the end of the line
@@ -140,15 +142,19 @@ int getStatusFromHttpHead(const std::string &head)
 
     // Find first and second space
     size_t firstSpace = line.find(' ');
-    if (firstSpace == std::string::npos) return -1;
+    if (firstSpace == std::string::npos)
+        return -1;
     size_t secondSpace = line.find(' ', firstSpace + 1);
-    if (secondSpace == std::string::npos) return -1;
+    if (secondSpace == std::string::npos)
+        return -1;
 
     // Extract status code
     int status = 0;
-    for (size_t i = firstSpace + 1; i < secondSpace; ++i) {
+    for (size_t i = firstSpace + 1; i < secondSpace; ++i)
+    {
         char c = line[i];
-        if (c < '0' || c > '9') return -1;
+        if (c < '0' || c > '9')
+            return -1;
         status = status * 10 + (c - '0');
     }
     return status;

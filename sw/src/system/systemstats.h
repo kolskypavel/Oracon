@@ -27,9 +27,6 @@ public:
     // HTTP related
     HttpStatus httpStatus;
 
-    // Static fields
-    std::string deviceKey;
-
     // Get the current battery level - read from voltage
     void updateBatteryLevel();
 };

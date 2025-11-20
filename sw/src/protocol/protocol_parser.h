@@ -5,6 +5,7 @@
 
 #include "system/systemstats.h"
 #include "si/si_parser.h"
+#include "secrets.h"
 #include <sstream>
 #include <iomanip>
 
@@ -20,14 +21,17 @@ void trimmString(std::string &text);
 // Checks if text starts with given prefix
 bool startsWith(const std::string &text, const std::string &prefix);
 
+// Checks if string contains given data
+bool contains(const std::string &input, const std::string &data);
+
 // Gets suffix after string str
 std::string getSuffix(const std::string &input, const std::string &str);
 
 // Gets substring between two strings
-std::string getSubstr(const std::string &input,const std::string & start,const std::string & end);
+std::string getSubstr(const std::string &input, const std::string &start, const std::string &end);
 
 // Parses the values from a command in a format COM:<X>,<Y>
-std::pair<int, int> getValuesFromAt(const std::string & command);
+std::pair<int, int> getValuesFromAt(const std::string &command);
 
 // Serializes status object to OraCon format
 std::string statusToString(const DeviceStatus &status);
@@ -36,7 +40,7 @@ std::string statusToString(const DeviceStatus &status);
 std::string punchesToString(const SIRecord punches[], int size, const DeviceStatus &status);
 
 // Gets a status from HTTP response
-int getStatusFromHttpHead(const std::string & head);
+int getStatusFromHttpHead(const std::string &head);
 
-//Returns a cause for given error code - from SIMCom AT manual
-const char * getCause(uint8_t errCode);
+// Returns a cause for given error code - from SIMCom AT manual
+const char *getCause(uint8_t errCode);

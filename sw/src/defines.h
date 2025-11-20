@@ -1,6 +1,9 @@
 #define usb_serial Serial
 #define nbiot_serial Serial1
 #define rs232_serial Serial2
+#define srr_serial Serial2
+
+// #define srr_serial Serial3
 
 // LEDS
 #define MILLIS_TO_MICROS(a) (int)(a * 1000)
@@ -23,6 +26,7 @@
 
 #define NB_IOT_SERIAL_BAUDRATE 115200
 #define SI_RS232_SERIAL_BAUDRATE 4800
+#define SI_SRR_SERIAL_BAUDRATE 38400
 
 // BATTERY
 #define MIN_BATTERY_LEVEL 3.3
@@ -47,47 +51,52 @@
 #define QUEUE_DATA_FILE_NAME "/queue_data.bin"
 #define QUEUE_METADATA_FILE_NAME "/queue_info.bin"
 
-// SOCKET - adjust timeouts in case of slow connection 
-#define SOCKET_CONNECT_READ_TIMEOUT 12
-#define SOCKET_READ_TIMEOUT 15
-#define SOCKET_READ_MODE "2" // 2 - ascii, 3 - hex
-#define SOCKET_READ_SIZE 200
+// SOCKET - adjust timeouts in case of slow connection
+#define SOCKET_READ_TIMEOUT 10
+#define SOCKET_HTTP_TIMEOUT 20
+#define APN "\"IP\",\"lpwa.vodafone.com\""
 
 // -------- CONFIGURE TO MATCH YOUR SCHEME ---------------
 
 // PINS
-#define RX_NBIOT_PIN 17
-#define TX_NBIOT_PIN 18
+#define RX_NBIOT_PIN 16
+#define TX_NBIOT_PIN 15
 
-#define RX_RS232_PIN 13
-#define TX_RS232_PIN 12 
+#define RX_RS232_PIN 2
+#define TX_RS232_PIN 1
 
-#define STATUS_LED_R_PIN 42
-#define STATUS_LED_G_PIN 40
-#define STATUS_LED_B_PIN 41
+#define RX_SRR_PIN 12
+#define TX_SRR_PIN 13
+
+#define STATUS_LED_R_PIN 7
+#define STATUS_LED_G_PIN 8
+#define STATUS_LED_B_PIN 9
 
 #define SIGNAL_LED_R_PIN 39
-#define SIGNAL_LED_G_PIN 37
-#define SIGNAL_LED_B_PIN 38
+#define SIGNAL_LED_G_PIN 40
+#define SIGNAL_LED_B_PIN 41
 
-#define BATTERY_LED_R_PIN 2
-#define BATTERY_LED_G_PIN 3
-#define BATTERY_LED_B_PIN 4
+#define BATTERY_LED_R_PIN 36
+#define BATTERY_LED_G_PIN 37
+#define BATTERY_LED_B_PIN 38
 
-#define CHG_PIN 34
-#define STBY_PIN 33
-#define BOOST_ENABLE 48
+#define CHG_PIN 17
+#define STBY_PIN 18
 
-#define BATTERY_MEASURE_PORT 16
+#define BATTERY_MEASURE_PORT 14
 
 // LOGIC
 #define MAIN_LOOP_DELAY 1
-#define STATUS_DELAY 20
-#define INIT_NBIOT_DELAY 10                 // Initial delay for the NB-IOT module, based on the docs
-#define SYSTEM_STATS_MEASURE_DELAY 10       // How often should system stats (signal and battery) be measured
+#define STATUS_DELAY 300
+#define INIT_NBIOT_DELAY 15           // Initial delay for the NB-IOT module, based on the docs
+#define SYSTEM_STATS_MEASURE_DELAY 10 // How often should system stats (signal and battery) be measured
+
+// HTTP
+#define HTTP_TIMEOUT 5
 
 // TESTING
-#define TEST_ORACON_SERIAL_VERBOSE                // Prints the received / sent data to a serial
-//#define TEST_NO_SI_TASKS                          // Don't start the tasks for receiving SI data
-#define TEST_SI_SERIAL_VERBOSE                    // Print info from SI serial reads
-#define TEST_QUEUE_VERBOSE                        // Print info from QUEUE
+#define TEST_ORACON_SERIAL_VERBOSE // Prints the received / sent data to a serial
+// #define TEST_NO_SI_TASKS                          // Don't start the tasks for receiving SI data
+#define USE_SRR
+#define TEST_SI_SERIAL_VERBOSE // Print info from SI serial reads
+#define TEST_QUEUE_VERBOSE     // Print info from QUEUE

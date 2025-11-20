@@ -24,7 +24,7 @@ void clearInBuffer();
 bool sendHttpData(const std::string data, DeviceStatus &status);
 
 // Receives raw data from the serial port
-std::string receiveRawData();
+std::string receiveRawData(uint8_t timeout);
 
 // Receives and parses the raw data - converts and decrypts
 std::string getData(DeviceStatus &status);

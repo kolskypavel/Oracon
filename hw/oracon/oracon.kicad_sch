@@ -13060,28 +13060,6 @@
 			)
 		)
 	)
-	(global_label "USB_SI_N"
-		(shape input)
-		(at 48.26 109.22 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "1c389150-677d-4864-9f76-b20b5796e5ef")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 36.3848 109.22 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-				(hide yes)
-			)
-		)
-	)
 	(global_label "NBIOT_TX"
 		(shape input)
 		(at 140.97 124.46 180)
@@ -13412,6 +13390,28 @@
 			)
 		)
 	)
+	(global_label "USB_SI_N"
+		(shape input)
+		(at 80.01 104.14 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "4308b730-48d2-43d6-88e0-63c1a8ad07be")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 91.8852 104.14 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "LED1_G"
 		(shape input)
 		(at 363.22 39.37 180)
@@ -13632,28 +13632,6 @@
 			)
 		)
 	)
-	(global_label "USB_SI_P"
-		(shape input)
-		(at 48.26 111.76 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "6bc9d843-0a67-4166-9bfd-4893da9ff1ca")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 36.4453 111.76 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-				(hide yes)
-			)
-		)
-	)
 	(global_label "STBY_STAT"
 		(shape input)
 		(at 375.92 111.76 180)
@@ -13716,6 +13694,28 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "USB_SI_P"
+		(shape input)
+		(at 80.01 106.68 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "7272999d-e0af-4379-a183-d1addf01c4ff")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 91.8247 106.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 				(hide yes)
 			)
 		)
@@ -18763,7 +18763,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "kolskypavel:CONN-TH_B2B-PH-K-S"
 			(at 226.06 39.37 0)
 			(effects
 				(font
@@ -18782,6 +18782,15 @@
 			)
 		)
 		(property "Description" "Generic connectable mounting pin connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 226.06 39.37 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "lcsc" "C131337"
 			(at 226.06 39.37 0)
 			(effects
 				(font

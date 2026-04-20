@@ -88,7 +88,7 @@
         "item_on_disabled_layer": "error",
         "items_not_allowed": "error",
         "length_out_of_range": "error",
-        "lib_footprint_issues": "warning",
+        "lib_footprint_issues": "ignore",
         "lib_footprint_mismatch": "ignore",
         "malformed_courtyard": "error",
         "microvia_drill_out_of_range": "error",
@@ -452,7 +452,7 @@
       "no_connect_dangling": "warning",
       "pin_not_connected": "error",
       "pin_not_driven": "error",
-      "pin_to_pin": "warning",
+      "pin_to_pin": "error",
       "power_pin_not_driven": "ignore",
       "same_local_global_label": "warning",
       "similar_label_and_power": "warning",
@@ -511,7 +511,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "../../../../Skola/FIT/NI/1.Semestr/KEO/doc/",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "oracon.step",
@@ -857,5 +857,7 @@
       "Root"
     ]
   ],
-  "text_variables": {}
+  "text_variables": {
+    "REVISION": "0.21"
+  }
 }

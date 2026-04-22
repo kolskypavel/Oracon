@@ -34560,7 +34560,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "B4B-XH-A"
+		(property "Value" "B4B-PH-K-S"
 			(at 128.27 140.9699 0)
 			(effects
 				(font
@@ -34569,7 +34569,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "kolskypavel:CONN-TH_B04B-PASK-1-LF-SN"
+		(property "Footprint" "kolskypavel:CONN-TH_B4B-PH-K-S"
 			(at 120.65 151.13 0)
 			(effects
 				(font
@@ -34578,7 +34578,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://lcsc.com/product-detail/_JST-Sales-America_B4B-XH-A-LF-SN_JST-Sales-America-B4B-XH-A-LF-SN_C144395.html"
+		(property "Datasheet" ""
 			(at 120.65 153.67 0)
 			(effects
 				(font
@@ -34605,7 +34605,7 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "B4B-XH-A(LF)(SN)"
+		(property "MPN" "B4B-PH-K-S(LF)(SN)"
 			(at 120.65 158.75 0)
 			(effects
 				(font
@@ -34614,7 +34614,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC Part" "C144395"
+		(property "LCSC Part" "C131334"
 			(at 120.65 161.29 0)
 			(effects
 				(font

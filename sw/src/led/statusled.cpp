@@ -24,9 +24,9 @@ StatusLED::StatusLED(int pin_r, int channel_r, int pin_g, int channel_g, int pin
 		pinMode(pin_r, OUTPUT);
 		pinMode(pin_g, OUTPUT);
 		pinMode(pin_b, OUTPUT);
-		ledcSetup(this->channel_r, 5000, 8); // channel 1, 5000Hz, 8bit PWM
-		ledcSetup(this->channel_g, 5000, 8); // channel 2, 5000Hz, 8bit PWM
-		ledcSetup(this->channel_b, 5000, 8); // channel 3, 5000Hz, 8bit PWM
+		ledcSetup(this->channel_r, 2000, 8); // channel 1, 5000Hz, 8bit PWM
+		ledcSetup(this->channel_g, 2000, 8); // channel 2, 5000Hz, 8bit PWM
+		ledcSetup(this->channel_b, 2000, 8); // channel 3, 5000Hz, 8bit PWM
 		ledcAttachPin(pin_r, this->channel_r);
 		ledcAttachPin(pin_g, this->channel_g);
 		ledcAttachPin(pin_b, this->channel_b);
@@ -203,15 +203,15 @@ void StatusLED::setRGB(int r, int g, int b)
 	switch (this->led_type)
 	{
 	case RGB_COMMON_ANODE:
-		ledcWrite(this->channel_r, 255 - r);
-		ledcWrite(this->channel_g, 255 - g);
-		ledcWrite(this->channel_b, 255 - b);
+		ledcWrite(this->channel_r, (255 - r) * 0.5);
+		ledcWrite(this->channel_g, (255 - g) * 0.5);
+		ledcWrite(this->channel_b, (255 - b) * 0.5);
 		break;
 
 	case RGB_COMMON_CATHODE:
-		ledcWrite(this->channel_r, r);
-		ledcWrite(this->channel_g, g);
-		ledcWrite(this->channel_b, b);
+		ledcWrite(this->channel_r, r * 0.2);
+		ledcWrite(this->channel_g, g * 0.2);
+		ledcWrite(this->channel_b, b * 0.2);
 		break;
 
 	case SINGLE_ANODE:

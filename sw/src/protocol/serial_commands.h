@@ -12,6 +12,7 @@ const std::string COMMAND_CHECK_SIGNAL = "AT+CSQ";
 const std::string COMMAND_CHECK_SERVICE = "AT+CEREG?";
 
 const std::string COMMAND_HTTP_INIT = "AT+HTTPINIT";
+const std::string COMMAND_HTTP_TERM = "AT+HTTPTERM";
 const std::string COMMAND_HTTP_SET_PARAMETERS = "AT+HTTPPARA=";
 const std::string COMMAND_HTTP_CONTENT = "\"CONTENT\",";
 const std::string COMMAND_HTTP_CONTENT_JSON = "\"application/json\"";

@@ -6,8 +6,8 @@
 
 #pragma once
 
-// Inits the filesystem and queue
-void initQueue();
+// Inits the filesystem and queue, returns number of unsend records
+uint8_t initQueue();
 
 //Puts a new record in the queue
 bool enqueueRecord(const SIRecord &record);

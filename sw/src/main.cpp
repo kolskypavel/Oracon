@@ -205,15 +205,12 @@ static void esp_usb_serial_connection_task(void *pvParameter)
 
 static void srr_serial_task(void *pvParameter)
 {
-  uint8_t buffer[MAX_SI_DATA_SIZE];
-  boolean finished = true;
+  uint8_t buffer[MAX_SI_BUFFER_SIZE];
 
   while (true)
   {
-    finished = true;
-
     // Clear buffer
-    for (int c = 0; c < MAX_SI_DATA_SIZE; c++)
+    for (int c = 0; c < MAX_SI_BUFFER_SIZE; c++)
     {
       buffer[c] = 0;
     }
@@ -225,9 +222,8 @@ static void srr_serial_task(void *pvParameter)
       while (srr_serial.available())
       {
         // Prevent buffer overflow
-        if (read >= MAX_SI_DATA_SIZE)
+        if (read >= MAX_SI_BUFFER_SIZE)
         {
-          finished = false;
           break;
         }
 
@@ -237,44 +233,55 @@ static void srr_serial_task(void *pvParameter)
       }
 
 #ifdef TEST_SI_SERIAL_VERBOSE
-      ESP_LOGI("SRR", "Received data: %s", dataToHex(buffer, read).c_str());
+      ESP_LOGI("SRR", "Received data, length %d: %s", read, dataToHex(buffer, read).c_str());
 #endif
 
-      if (finished &&
-          read >= SI_RECORD_SIZE &&
-          buffer[1] == BYTE_STX &&
-          buffer[2] == BYTE_PUNCH_DATA &&
-          buffer[19] == BYTE_ETX)
+      uint8_t *recordBuf = buffer;
+      uint8_t processed = 0;
+
+      while (processed * SI_RECORD_SIZE <= read)
       {
-        SIRecord record;
-
-        //    Try to parse data
-        if (parseSIdata(buffer + 1, record))
+        if (read >= SI_RECORD_SIZE &&
+            recordBuf[1] == BYTE_STX &&
+            recordBuf[2] == BYTE_PUNCH_DATA &&
+            recordBuf[19] == BYTE_ETX)
         {
-#ifdef TEST_SI_SERIAL_VERBOSE
-          ESP_LOGI("SRR", "Parsed SI-Card data from SRR serial:[S %d,C %d, T %s]",
-                   record.stationNumber,
-                   record.cardNumber,
-                   record.time);
-#endif
-          if (!enqueueRecord(record))
-          {
-            ESP_LOGE("SRR", "Queue is full");
+          SIRecord record;
 
-            status_led.setMode(StatusLED::PULSE, STATUS_LED_ERROR_FREQ);
+          // Try to parse data
+          if (parseSIdata(recordBuf + 1, record))
+          {
+#ifdef TEST_SI_SERIAL_VERBOSE
+            ESP_LOGI("SRR", "Parsed SI-Card data from SRR serial:[S %d,C %d, T %s]",
+                     record.stationNumber,
+                     record.cardNumber,
+                     record.time);
+#endif
+            if (!enqueueRecord(record))
+            {
+              ESP_LOGE("SRR", "Queue is full");
+
+              status_led.setMode(StatusLED::PULSE, STATUS_LED_ERROR_FREQ);
+            }
+            else
+            {
+              status_led.setMode(StatusLED::SOLID, 0);
+            }
           }
           else
           {
-            status_led.setMode(StatusLED::SOLID, 0);
+            ESP_LOGE("SRR", "FAIL");
           }
         }
-      }
 #ifdef TEST_SI_SERIAL_VERBOSE
-      else
-      {
-        ESP_LOGI("SRR", "Received data is not SI-Card data");
-      }
+        else
+        {
+          ESP_LOGI("SRR", "Received data at index: %d is not SI-Card data", processed);
+        }
 #endif
+        processed++;
+        recordBuf += SI_RECORD_SIZE; // move pointer to the next record
+      }
     }
     delay(1); // Prevent WDT from reset
   }
@@ -284,7 +291,7 @@ static void srr_serial_task(void *pvParameter)
 
 static void rs232_serial_task(void *pvParameter)
 {
-  uint8_t buffer[MAX_SI_DATA_SIZE];
+  uint8_t buffer[MAX_SI_RECORD_SIZE];
   boolean finished = true;
 
   while (true)
@@ -292,7 +299,7 @@ static void rs232_serial_task(void *pvParameter)
     finished = true;
 
     // Clear buffer
-    for (int c = 0; c < MAX_SI_DATA_SIZE; c++)
+    for (int c = 0; c < MAX_SI_RECORD_SIZE; c++)
     {
       buffer[c] = 0;
     }
@@ -304,7 +311,7 @@ static void rs232_serial_task(void *pvParameter)
       while (rs232_serial.available())
       {
         // Prevent buffer overflow
-        if (read >= MAX_SI_DATA_SIZE)
+        if (read >= MAX_SI_RECORD_SIZE)
         {
           finished = false;
           break;
@@ -476,17 +483,19 @@ void initIOT()
 
   std::string resp;
 
+  // Disable power saving modes
+  writeData("AT+CPSMS=0");
+  resp = receiveRawData(SOCKET_READ_TIMEOUT);
+
+  writeData("AT+CEDRXS=0");
+  resp = receiveRawData(SOCKET_READ_TIMEOUT);
+
+  // Set APN and read timeout manually
   writeData("AT+QCBAND=0,20");
   resp = receiveRawData(SOCKET_READ_TIMEOUT);
 
   writeData("AT+CGDCONT=0," + std::string(APN));
   resp = receiveRawData(SOCKET_READ_TIMEOUT);
-
-  // writeData("AT+QCBAND?");
-  // resp = receiveRawData();
-
-  // writeData("AT+CGDCONT=?");
-  // resp = receiveRawData();
 }
 
 void setup()
@@ -528,8 +537,8 @@ void setup()
 
   try
   {
-    // INIT QUEUE
-    initQueue();
+    // INIT QUEUE with number of unsent punches
+    received = initQueue();
 
     // INIT STATUS
     initStatus();
@@ -623,7 +632,7 @@ void loop()
         {
           ESP_LOGI("STATUS", "Time period elapsed");
 
-          sendStatus(currStatus, prefs);
+          sendStatus(currStatus, prefs); // TODO: Add a check to ensure status got sent
           statusStartSeconds = getCurrentTime();
         }
       }

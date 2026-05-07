@@ -157,6 +157,8 @@ void initHttp(DeviceStatus &status)
     if (!startsWith(resp, COMMAND_RESPONSE_OK))
     {
         ESP_LOGE("INIT", "Failed to init HTTP");
+        writeData(COMMAND_HTTP_TERM);
+        clearInBuffer();
         return;
     }
 
@@ -270,7 +272,7 @@ bool sendHttpData(const std::string data, DeviceStatus &status)
         writeData(COMMAND_HTTP_READ_RESPONSE + "200");
         buffer = receiveRawData(SOCKET_READ_TIMEOUT);
 
-        return false;
+        return true;
     }
 
     default:

@@ -25,6 +25,8 @@ struct SIRecord
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
+
+ // Parses given data into SIRecord
 bool parseSIdata(const uint8_t *data, SIRecord &out);
 
 // Returns an example SI record for testing purposes

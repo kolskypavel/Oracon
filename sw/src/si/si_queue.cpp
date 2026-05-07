@@ -8,7 +8,7 @@ File metadataFile; // Start and end indexes
 uint8_t readIndex = 0;
 uint8_t writeIndex = 0;
 
-void initQueue()
+uint8_t initQueue()
 {
     if (!SPIFFS.begin(true))
     {
@@ -73,6 +73,8 @@ void initQueue()
     {
         throw std::runtime_error("QUEUE: Failed to open files");
     }
+    
+    return (writeIndex >= readIndex) ? (writeIndex - readIndex) : (PUNCH_QUEUE_SIZE - readIndex + writeIndex);
 }
 
 bool enqueueRecord(const SIRecord &record)

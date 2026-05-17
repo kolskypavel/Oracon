@@ -44,7 +44,8 @@
 #define WHITESPACES " \t\n\r\f\v"
 
 // QUEUE MANIPULATION
-#define MAX_SI_DATA_SIZE 50
+#define MAX_SI_BUFFER_SIZE 1024
+#define MAX_SI_RECORD_SIZE 30
 #define SI_RECORD_SIZE 19
 #define PUNCH_QUEUE_SIZE 20
 #define PUNCH_BUFFER_SIZE 5
@@ -53,7 +54,7 @@
 
 // SOCKET - adjust timeouts in case of slow connection
 #define SOCKET_READ_TIMEOUT 10
-#define SOCKET_HTTP_TIMEOUT 20
+#define SOCKET_HTTP_TIMEOUT 30
 #define APN "\"IP\",\"lpwa.vodafone.com\""
 
 // -------- CONFIGURE TO MATCH YOUR SCHEME ---------------
@@ -95,8 +96,8 @@
 #define HTTP_TIMEOUT 5
 
 // TESTING
-#define TEST_ORACON_SERIAL_VERBOSE // Prints the received / sent data to a serial
+#define TEST_ORACON_SERIAL_VERBOSE                   // Prints the received / sent data to a serial
 // #define TEST_NO_SI_TASKS                          // Don't start the tasks for receiving SI data
 #define USE_SRR
-#define TEST_SI_SERIAL_VERBOSE // Print info from SI serial reads
-#define TEST_QUEUE_VERBOSE     // Print info from QUEUE
+#define TEST_SI_SERIAL_VERBOSE                       // Print info from SI serial reads
+#define TEST_QUEUE_VERBOSE                           // Print info from QUEUE

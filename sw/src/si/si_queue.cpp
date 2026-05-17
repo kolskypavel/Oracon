@@ -8,7 +8,7 @@ File metadataFile; // Start and end indexes
 uint8_t readIndex = 0;
 uint8_t writeIndex = 0;
 
-uint8_t initQueue()
+void initQueue()
 {
     if (!SPIFFS.begin(true))
     {
@@ -73,8 +73,6 @@ uint8_t initQueue()
     {
         throw std::runtime_error("QUEUE: Failed to open files");
     }
-    
-    return (writeIndex >= readIndex) ? (writeIndex - readIndex) : (PUNCH_QUEUE_SIZE - readIndex + writeIndex);
 }
 
 bool enqueueRecord(const SIRecord &record)
@@ -123,33 +121,54 @@ bool enqueueRecord(const SIRecord &record)
     return true;
 }
 
-void receiveRecords(SIRecord *records, uint8_t &out)
+uint8_t receiveRecords(SIRecord *records, uint8_t &consumed)
 {
     std::unique_lock<std::mutex> lock(mtx);
-    out = 0;
+    SIRecord tmpRecord;
     uint8_t tmpRead = readIndex;
+    uint8_t validCount = 0;
+    consumed = 0;
 
-    while (out < PUNCH_BUFFER_SIZE && tmpRead != writeIndex)
+    while (validCount < PUNCH_BUFFER_SIZE && tmpRead != writeIndex)
     {
         if (!queueFile.seek(tmpRead * sizeof(SIRecord)))
         {
+#ifdef TEST_QUEUE_VERBOSE
             ESP_LOGE("QUEUE", "Failed to seek to read position in queue file");
-            return;
+#endif
+            break;
         }
 
-        if (queueFile.read((uint8_t *)&records[out], sizeof(SIRecord)) != sizeof(SIRecord))
+        if (queueFile.read((uint8_t *)&tmpRecord, sizeof(SIRecord)) != sizeof(SIRecord))
         {
+#ifdef TEST_QUEUE_VERBOSE
             ESP_LOGE("QUEUE", "Failed to read record from queue file");
-            return;
+#endif
+            break;
         }
 
-        out++;
+        consumed++;
         tmpRead = (tmpRead + 1) % PUNCH_QUEUE_SIZE;
+
+        // Validate record
+        if (validateRecord(tmpRecord))
+        {
+            records[validCount] = tmpRecord;
+            validCount++;
+        }
+#ifdef TEST_QUEUE_VERBOSE
+        else
+        {
+            ESP_LOGE("QUEUE", "Failed to validate record");
+        }
+#endif
     }
 
 #ifdef TEST_QUEUE_VERBOSE
-    ESP_LOGI("QUEUE", "Read %d punches", out);
+    ESP_LOGI("QUEUE", "Read %d punches, consumed %d queue entries", validCount, consumed);
 #endif
+
+    return validCount;
 }
 
 bool removeRecords(uint8_t size)

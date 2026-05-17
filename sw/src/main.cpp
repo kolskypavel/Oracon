@@ -38,6 +38,7 @@ unsigned long statusCurrSeconds;
 unsigned long measureStartSeconds;
 unsigned long measureCurrSeconds;
 uint8_t received = 0;
+uint8_t receivedConsumed = 0;
 
 // Punches sending
 SIRecord punches[PUNCH_BUFFER_SIZE];
@@ -537,8 +538,8 @@ void setup()
 
   try
   {
-    // INIT QUEUE with number of unsent punches
-    received = initQueue();
+    // INIT QUEUE 
+    initQueue();
 
     // INIT STATUS
     initStatus();
@@ -613,7 +614,13 @@ void loop()
 
         if (received == 0)
         {
-          receiveRecords(punches, received);
+          received = receiveRecords(punches, receivedConsumed);
+
+          if (received == 0 && receivedConsumed > 0)
+          {
+            removeRecords(receivedConsumed);
+            receivedConsumed = 0;
+          }
         }
 
         if (received > 0)
@@ -621,8 +628,9 @@ void loop()
           ESP_LOGI("MAIN", "Sending punches");
           if (sendPunches(currStatus, punches, received))
           {
-            removeRecords(received);
+            removeRecords(receivedConsumed);
             received = 0;
+            receivedConsumed = 0;
           }
         }
         // STATUS?

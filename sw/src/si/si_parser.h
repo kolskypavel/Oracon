@@ -29,6 +29,8 @@ struct SIRecord
  // Parses given data into SIRecord
 bool parseSIdata(const uint8_t *data, SIRecord &out);
 
+bool validateRecord(const SIRecord &record);
+
 // Returns an example SI record for testing purposes
 SIRecord getTestSIRecord();
 

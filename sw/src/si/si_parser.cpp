@@ -63,6 +63,15 @@ bool parseSIdata(const uint8_t *data, SIRecord &out)
   return false;
 }
 
+bool validateRecord(const SIRecord &record)
+{
+  return (record.cardNumber > 0 &&
+          record.cardNumber < 55555 &&
+          record.stationNumber > 0 &&
+          record.stationNumber < 512 &&
+          strcmp(record.time, "") != 0);
+}
+
 SIRecord getTestSIRecord()
 {
   SIRecord record = {123456, 111, "12:22:20"};
